@@ -165,7 +165,7 @@
           delegate_to: localhost
           ansible.builtin.command: "ansible-galaxy collection install {{ item }}"
           args:
-            creates: "~/.ansible/collections/ansible_collections/{{ item | replace('.', '/') }}"
+            creates: "/usr/lib/python3.14/site-packages/ansible_collections/{{ item | replace('.', '/') }}"
           loop:
             - kubernetes.core
             - containers.podman
