@@ -15,10 +15,7 @@
     push_args:
       dest: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
 
-- name: Update K3s Cluster
-  hosts: k3s_servers
-  tasks:
-    - name: Apply K8s Manifest
-      kubernetes.core.k8s:
-        state: present
-        definition: "{{ lookup('ansible.builtin.template', '../apps/' + app_name + '/k8s.yml.j2') }}"
+- name: Apply K8s Manifest
+  kubernetes.core.k8s:
+    state: present
+    definition: "{{ lookup('ansible.builtin.template', '../apps/' + app_name + '/k8s.yml.j2') }}"

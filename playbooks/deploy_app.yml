@@ -1,8 +1,9 @@
 # Playbook: deploy_app.yml
-# Purpose: Builds a C++26 container using Podman and deploys to K3s.
+# Purpose: Builds an app container using Podman and deploys to K3s.
 # Requirements:
 #   - Variable 'app_name' must match a folder in /apps/
 #   - Control node must have Podman installed.
+#   - App directory in /apps/ must have k8s.yml.j2 deployment manifest in root
 # Target: Localhost (Build) -> K3s_Servers (Deploy)
 - name: Pre-flight App Validation
   hosts: localhost
@@ -28,5 +29,4 @@
   gather_facts: true
   tasks:
     - name: Run deployment
-      ansible.builtin.include_tasks: deploy_app_yasks.yml
-
+      ansible.builtin.include_tasks: deploy_app_tasks.yml
