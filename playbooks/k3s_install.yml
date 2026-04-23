@@ -187,7 +187,7 @@
 
         - name: Check if local kubeconfig already exists
           ansible.builtin.stat:
-            path: "~/.kube/config"
+            path: "{{ lookup('env', 'HOME') }}/.kube/config"
           register: kubeconfig_check
           delegate_to: localhost
 
@@ -203,12 +203,13 @@
         - name: Fetch K3s config from host
           ansible.builtin.fetch:
             src: /etc/rancher/k3s/k3s.yaml
-            dest: "~/.kube/config"
+            dest: /tmp/k3s_from_server.yaml.tmp
             flat: true
+          changed_when: false
 
         - name: Update server address to mDNS
-          ansible.builtin.replace:
-            path: "{{ lookup('env', 'HOME') }}/.kube/config"
-            regexp: '127.0.0.1'
-            replace: "{{ inventory_hostname }}"
+          ansible.builtin.copy:
+            content: "{{ lookup('file', '/tmp/k3s_from_server.yaml.tmp') | replace('127.0.0.1', inventory_hostname) }}"
+            dest: "{{ lookup('env', 'HOME') }}/.kube/config"
+            mode: '0600'
           delegate_to: localhost
