@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim AS builder
+FROM debian:trixie-slim AS builder
 
 RUN apt-get update && apt-get install -y \
     build-essential \
@@ -17,7 +17,7 @@ RUN cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build
 
 
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y \
     libstdc++6 \
