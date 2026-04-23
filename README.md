@@ -18,7 +18,7 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
 - Adding new hardware run command:
 `ansible-playbook site.yml -i inventory.yml -K --ask-vault-password`
 - Start developing a new app copy the project from skeletons:
-`cp skeletons/_cpp apps/my-new-app-name`
+`cp -r skeletons/_cpp apps/my-new-app-name`
   - cd into new project and git init, gh repo create git submodule add
 - Adding new app (single deploy) run command from project root:
 `ansible-playbook playbooks/deploy_app.yml -i inventory.yml -e app_name=my-new-app-name`
