@@ -88,6 +88,15 @@
   become: true
   run_once: true
   tasks:
+    - name: Install required python libraries for Kubernetese
+      delegate_to: localhost
+      become: true
+      ansible.builtin.package:
+        name:
+          - "{{ 'python3-kubernetes' if ansible_os_family == 'RedHat' else 'python3-kubernetes' }}"
+          - "{{ 'python3-pyyaml' if ansible_os_family == 'RedHat' else 'python3-yaml' }}"
+        state: present 
+
     - name: Installing kubectl on control node
       delegate_to: localhost
       block:
