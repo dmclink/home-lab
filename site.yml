@@ -11,5 +11,5 @@
   tags: k3s
 
 - name: Install postgres into K3 container
-  import_playbook: apps/postgres/postgres_install.yml
+  import_playbook: apps/postgres/install.yml
   tags: postgres
