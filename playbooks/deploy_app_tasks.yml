@@ -1,7 +1,7 @@
 - name: Build image with Podman
   containers.podman.podman_image:
     name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
-    path: "../apps/{{ app_name }}"
+    path: "{{ project_root }}/apps/{{ app_name }}"
     build:
       extra_args: "--tls-verify=false"
     state: build
