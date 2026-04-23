@@ -3,7 +3,8 @@ db_super_user: "user"
 db_initial_name: "database"
 
 # ip and port for machine that will store and serve k3s image registry
-registry_host: "192.x.y.z"  
+registry_ip: "100.x.y.z"  
+registry_host: "host1"  
 registry_port: "5000"
 # hostname of your current machine you run ansible from
 control_node_host: "control_node"
@@ -15,3 +16,10 @@ ryzen_wattage: 11
 # degrees Celsius where throttling kicks in, lower limits can prevent fan noise
 # defaults to 75 if var not included
 ryzen_temp_limit: 75
+
+registry_host: "pn50-01"  
+registry_port: "5000"
+control_node_host: "msi-ge76"
+
+# allows us to call plays from different locations and reference templates from different plays located in diff dirs
+project_root: "{{ lookup('pipe', 'git rev-parse --show-toplevel') }}"
