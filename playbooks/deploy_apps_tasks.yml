@@ -1,0 +1,24 @@
+- name: Build image with Podman
+  containers.podman.podman_image:
+    name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+    path: "../apps/{{ app_name }}"
+    build:
+      extra_args: "--tls-verify=false"
+    state: build
+    force: true
+
+- name: Push to local registry
+  containers.podman.podman_image:
+    name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+    push: true
+    tls_verify: false
+    push_args:
+      dest: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+
+- name: Update K3s Cluster
+  hosts: k3s_servers
+  tasks:
+    - name: Apply K8s Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('ansible.builtin.template', '../apps/' + app_name + '/k8s.yml.j2') }}"

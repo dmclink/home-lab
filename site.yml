@@ -14,3 +14,20 @@
   import_playbook: infrastructure/postgres/install.yml
   tags: [infra]
 
+- name: Deploy all custom apps
+  tags: [apps]
+  hosts: localhost
+  tasks:
+    - name: Get list of all apps in the apps directory
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/apps"
+        file_type: directory
+      register: found_apps
+
+    - name: Deploy each found app
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/playbooks/deploy_app_tasks.yml"
+      loop: "{{ found_apps.files }}"
+      loop_control:
+        loop_var: app_item
+      vars:
+        app_name: "{{ app_item.path | basename }}"
