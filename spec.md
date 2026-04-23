@@ -2,6 +2,26 @@
 ## Vision
 Headless mini-pc cluster managed remotely. Allows for development and simplified deployment in apps of various languages. Utilizes K3s for orchestration, consolidated monitoring, and container management. Leverages Ansible as the single source of truth for hardware and software configuration.
 
+## Directory Structure
+- `/apps`: Active, buildable custom application submodules (C++, Go, etc.). 
+- `/skeletons`: Blueprint folders (e.g., `_cpp`) used to bootstrap new apps.
+- `/infrastructure`: Third-party services and cluster foundations (K3s, Postgres, Registry).
+- `/playbooks`: Workflow automation (deployment engine) and system tuning (power limits).
+- `/group_vars` & `secret_vars.yml`: Configuration and encrypted Vault secrets.
+
+## Application Standards
+- Submodules: Every directory in `/apps` must be a standalone Git submodule.
+- Contract: To work with the global `deploy_app.yml` engine, every app must contain:
+    - A `Dockerfile` in the root.
+    - A `k8s.yml.j2` template for Kubernetes deployment.
+    - It's own `.gitignore` and `.dockerignore` files
+- Bootstrapping: New apps should be created by copying a folder from `/skeletons`.
+
+## Workflow
+- Full Provisioning: Run `ansible-playbook site.yml` to set up the entire lab from scratch.
+- App Development: Use `ansible-playbook playbooks/deploy_app.yml -e "app_name=<folder_name>"` for iterative builds.
+- Infrastructure Changes: Use tags to target specific layers, e.g.
+
 ## Core Requirements
 - Headless Operation: Debian Server OS running on Mini-PCs with no peripherals attached
 - Networking: Connectivity and remote access are managed via Tailscale for stable, "static" MagicDNS addressing and encrypted SSH
@@ -88,6 +108,8 @@ Connectivity
 └─────────────────────────────────────────────────────────┘
 
 * All node-to-node communication occurs over Tailscale/mDNS
+
+
 
 ## Dev and Deploy Workflow
 1. Code on Fedora Laptop
