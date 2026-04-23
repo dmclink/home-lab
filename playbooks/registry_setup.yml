@@ -16,6 +16,11 @@
         group: root
         mode: '0755'
 
+    - name: Get tailscale IPv4 address
+      ansible.builtin.command: tailscale ip -4
+      register: tailscale_ip_result
+      changed_when: false
+
     - name: Start Registry container
       containers.podman.podman_container:
         name: local-registry
@@ -23,7 +28,7 @@
         state: started
         restart_policy: always
         ports:
-          - "$(tailscale ip -4):{{ registry_port }}:5000"
+          - "{{ tailscale_ip_result.stdout }}:{{ registry_port }}:5000"
         volumes:
           - /opt/registry_data:/var/lib/registry:Z
 
