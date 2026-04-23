@@ -1,3 +1,37 @@
+.env
+.env.*
+!.env.example
+
+# contains ip addresses
 inventory.yml
+# contains hostnames and user names
 group_vars/all.yml
+
+# contains passwords
 secret_vars.yml
+
+# The default root path for Ansible config files on the controller
+.ansible/
+
+# template from Wiredcraft/ansible-template
+!.gitignore
+!.dockerignore
+!.placeholder
+
+*.log
+*.py[co]
+*~
+*.swp
+*.retry
+sandbox
+
+#
+# We want to rely on the requirements.yml file for listing the roles
+# but some of the roles are not public or are project specific that
+# they are co-hosted with the project. 
+# The following lines ensure we only track roles which name starts
+# by `project-`, ignoring all the other roles 
+#
+ansible/roles/*
+!ansible/roles/project-*
+!ansible/roles/README.md
