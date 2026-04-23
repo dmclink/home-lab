@@ -1,15 +1,16 @@
 - name: Configure PN50 hardware power limits
   import_playbook: playbooks/pn50_power_limits.yml
-  tags: [hardware, pn50]
+  tags: [hardware]
 
 - name: Setup local registry to hold k3s images
-  import_playbook: playbooks/registry_setup.yml
-  tags: k3s
+  import_playbook: infrastructure/registry/main.yml
+  tags: [infra]
 
 - name: Install K3s Cluster
-  import_playbook: playbooks/k3s_install.yml
-  tags: k3s
+  import_playbook: infrastructure/k3s/main.yml
+  tags: [infra]
 
 - name: Install postgres into K3 container
-  import_playbook: apps/postgres/install.yml
-  tags: postgres
+  import_playbook: infrastructure/postgres/install.yml
+  tags: [infra]
+

@@ -44,7 +44,7 @@
 
     - name: Configure K3s registries.yaml
       ansible.builtin.template:
-        src: registries.yml.j2
+        src: ../templates/registries.yml.j2
         dest: /etc/rancher/k3s/registries.yaml
         owner: root
         group: root
