@@ -2,7 +2,7 @@
   hosts: db_servers
   become: true
   vars_files:
-    - secret_vars.yml
+    - "../../secret_vars.yml"
   module_defaults:
     kubernetes.core.k8s:
       kubeconfig: /etc/rancher/k3s/k3s.yaml
