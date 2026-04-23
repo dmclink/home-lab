@@ -1,0 +1,41 @@
+all:
+  hosts:
+    host1:
+      ansible_host: host1.<your-tailnet-name>.ts.net
+      ansible_python_interpreter: /usr/bin/python3.13
+
+  children:
+    # HARDWARE ROLES
+    pn50s:
+      hosts:
+        host1:
+        # add any new pn50s that we want to power limit here
+
+    # INFRASTRUCTURE ROLES
+    registry_server:
+      hosts:
+        host1:
+  
+    db_servers: # hosts that run postgres
+      hosts:
+        host1:
+
+    # K3S ROLES
+    k3s_servers:
+      hosts:
+        host1:
+
+    k3s_agents:
+      hosts:
+        # empty for now, add host2 etc. or other hosts on the same cluster here
+
+    # GROUPINGS
+    home_minis:
+      children:
+        pn50s:
+        # any new hardware groups ie macmini, etc here
+
+    k3s_cluster:
+      children:
+        k3s_servers:
+        k3s_agents:

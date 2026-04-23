@@ -1,0 +1,18 @@
+[Unit]
+Description=Apply RyzenAdj Power Limits
+After=multi-user.target
+# Optional: re-run after sleep/suspend
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+
+[Service]
+Type=oneshot
+# multiply ryzen_wattage by 1000 for milliwatts
+ExecStart=/usr/local/bin/ryzenadj \
+    --stapm-limit={{ ryzen_wattage | default(15) * 1000 }} \
+    --fast-limit={{ ryzen_wattage | default(15) * 1000 }} \
+    --slow-limit={{ ryzen_wattage | default(15) * 1000 }} \
+    --tctl-temp={{ ryzen_temp_limit | default(75) }}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target suspend.target

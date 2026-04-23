@@ -1,0 +1,101 @@
+- name: Setup Podman Registry
+  hosts: registry_server
+  become: true
+
+  tasks:
+    - name: Install Podman (Debian) and dependencies
+      ansible.builtin.package:
+        name: [curl, podman, python3-podman]
+        state: present
+
+    - name: Ensure registry storage directory exists
+      ansible.builtin.file:
+        path: /opt/registry_data
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Start Registry container
+      containers.podman.podman_container:
+        name: local-registry
+        image: docker.io/library/registry:2
+        state: started
+        restart_policy: always
+        ports:
+          - "$(tailscale ip -4):{{ registry_port }}:5000"
+        volumes:
+          - /opt/registry_data:/var/lib/registry:Z
+
+- name: Configure K3s Registry Trust
+  hosts: k3s_cluster
+  become: true
+  tasks:
+    - name: Ensure K3s config directory exists
+      ansible.builtin.file:
+        path: /etc/rancher/k3s
+        state: directory
+        mode: '0755'
+
+    - name: Configure K3s registries.yaml
+      ansible.builtin.template:
+        src: registries.yml.j2
+        dest: /etc/rancher/k3s/registries.yaml
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart K3s
+
+  handlers:
+    - name: Restart K3s
+      ansible.builtin.systemd:
+        name: "{{ 'k3s' if 'k3s_servers' in group_names else 'k3s-agent' }}"
+        state: restarted
+
+- name: Create heartbeat/healthcheck for K3s registry podman container
+  hosts: registry_server
+  become: true
+  tasks:
+    - name: Create heartbeat script
+      ansible.builtin.copy:
+        dest: /usr/local/bin/registry-heartbeat.sh
+        mode: '0755'
+        content: |
+          #!/bin/bash
+          #Check if container is running
+          STATUS=$(podman inspect -f '{{ "{{" }}.State.Status{{ "}}" }}' local-registry 2>/dev/null || echo "stopped")
+          # Push heartbeat payload to laptop listener
+          curl -s --connect-timeout 2 --max-time 5 -X POST http://{{ control_node_host }}:9090/health \
+            -H "Content-Type": application/json \
+            -d "{\"service\": \"registry\", \"status\": \"$STATUS\", \"host\": \"{{ inventory_hostname }}\"}"
+
+    - name: Setup systemd timer for heartbeat
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/registry-heartbeat.service
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/bin/registry-heartbeat.sh
+
+    - name: Setup heartbeat schedule (every minute)
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/registry-heartbeat.timer
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          [Timer]
+          OnCalendar=*:*:0/30
+          Unit=registry-heartbeat.service
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable and start heartbeat timer
+      ansible.builtin.systemd:
+        name: registry-heartbeat.timer
+        state: started
+        enabled: true
+        daemon_reload: true

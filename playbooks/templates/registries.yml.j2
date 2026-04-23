@@ -1,0 +1,4 @@
+mirrors:
+  "{{ registry_host }}:{{ registry_port | default(5000) }}":
+    endpoint:
+      - "http://{{ registry_host }}:{{ registry_port | default(5000) }}"

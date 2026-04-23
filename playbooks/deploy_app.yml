@@ -1,0 +1,49 @@
+# Playbook: deploy_app.yml
+# Purpose: Builds a C++26 container using Podman and deploys to K3s.
+# Requirements:
+#   - Variable 'app_name' must match a folder in /apps/
+#   - Control node must have Podman installed.
+# Target: Localhost (Build) -> K3s_Servers (Deploy)
+- name: Pre-flight App Validation
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Ensure app_name variable is provided
+      ansible.builtin.fail:
+        msg: "❌ Error: 'app_name' variable is missing. Run with: -e 'app_name=your_app'"
+      when: app_name is undefined or app_name | length == 0
+
+    - name: Verify app directory exists
+      ansible.builtin.stat:
+        path: "../apps/{{ app_name }}"
+      register: app_dir
+
+    - name: Fail if app directory is missing
+      ansible.builtin.fail:
+        msg: "❌ Error: App folder '../apps/{{ app_name }}' not found."
+      when: not app_dir.stat.exists or not app_dir.stat.isdir
+
+    - name: Build image with Podman
+      containers.podman.podman_image:
+        name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+        path: "../apps/{{ app_name }}"
+        build:
+          extra_args: "--tls-verify=false"
+        state: build
+        force: true
+
+    - name: Push to local registry
+      containers.podman.podman_image:
+        name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+        push: true
+        tls_verify: false
+        push_args:
+          dest: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+
+- name: Update K3s Cluster
+  hosts: k3s_servers
+  tasks:
+    - name: Apply K8s Manifest
+      kubernetes.core.k8s:
+        state: present
+        definition: "{{ lookup('ansible.builtin.template', '../apps/' + app_name + '/k8s.yml.j2') }}"

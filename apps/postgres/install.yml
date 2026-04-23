@@ -1,0 +1,25 @@
+- name: Install and configure postgres servers
+  hosts: db_servers
+  become: true
+  vars_files:
+    - secret_vars.yml
+  module_defaults:
+    kubernetes.core.k8s:
+      kubeconfig: /etc/rancher/k3s/k3s.yaml
+
+  tasks:
+    - name: Create kubernetes namespace for database
+      kubernetes.core.k8s:
+        definition: "{{ lookup('template', './namespace.yml.j2') }}"
+
+    - name: Create Postgres secret from vault variable and store in kubernetes secrets
+      kubernetes.core.k8s:
+        definition: "{{ lookup('template', './secret.yml.j2') }}"
+
+    - name: Deploy PostgreSQL StatefulSet
+      kubernetes.core.k8s:
+        definition: "{{ lookup('template', './statefulset.yml.j2') }}"
+
+    - name: Create Postgres Service
+      kubernetes.core.k8s:
+        definition: "{{ lookup('template', './service.yml.j2') }}"

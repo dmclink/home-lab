@@ -1,0 +1,124 @@
+- name: Install RyzenAdj dependencies
+  hosts: home_minis
+  become: true
+  vars:
+    ryzenadj_dir: "/opt/ryzen_adj"
+    ryzensmu_dir: "/opt/ryzen_smu"
+
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Install build dependencies and kernel headers
+      ansible.builtin.apt:
+        name:
+          - dkms
+          - build-essential
+          - cmake
+          - libpci-dev
+          - git
+          - "linux-headers-{{ ansible_kernel }}"
+        state: present
+        update_cache: true
+
+    - name: Clone ryzen_smu kernel
+      ansible.builtin.git:
+        repo: 'https://github.com/amkillam/ryzen_smu'
+        dest: "{{ ryzensmu_dir }}"
+        version: main
+
+    - name: Check if ryzen_smu is already in DKS
+      ansible.builtin.shell: |
+            set -o pipefail
+            dkms status | grep -q "ryzen_smu"
+      register: smu_dkms_check
+      failed_when: false
+      changed_when: false
+
+    - name: Build ryzen_smu with make
+      community.general.make:
+        chdir: "{{ ryzensmu_dir }}"
+        target: dkms-install
+      when: smu_dkms_check.rc != 0
+
+    - name: Load new ryzen_smu kernel
+      community.general.modprobe:
+        name: ryzen_smu
+        state: present
+
+    - name: Check Secure Boot state
+      ansible.builtin.command:
+        cmd: mokutil --sb-state
+      register: sb_check
+      changed_when: false
+      failed_when: false
+
+    - name: Prompt for MOK import if Secure Boot is enabled
+      ansible.builtin.pause:
+        prompt: >
+          Secure boot is enabled. Requires importing MOK.
+          This step will require manually rebooting the device with a keyboard and monitor to login and approve signed kernel.
+          Enter (q or n) to exit
+      when: sb_check is search('SecureBoot enabled')
+
+    - name: Handle Secure Boot refusal
+      ansible.builtin.fail:
+        msg: "Halting: Cannot proceed on a Secure Boot system without importing MOK"
+      when:
+        - sb_check is search('SecureBoot enabled')
+        - mok_prompt.user_input | lower == 'n' or mok_prompt.user_input | lower == 'q'
+
+    - name: Prompt for manual reboot
+      ansible.builtin.pause:
+        prompt: >
+          1. This step requires manually rebooting of the host and login
+          2. Connect a keyboard and monitor to the host if not already
+          3. Manually reboot
+          4. Login manually
+          5. Press Enter when ready
+      when: sb_check is search('SecureBoot enabled')
+
+    - name: Clone RyzenAdj
+      ansible.builtin.git:
+        repo: 'https://github.com/FlyGoat/RyzenAdj'
+        dest: "{{ ryzenadj_dir }}"
+        version: master
+
+    - name: Configure RyzenAdj with CMake
+      ansible.builtin.command:
+        cmd: cmake -B build -DCMAKE_BUILD_TYPE=Release
+        chdir: "{{ ryzenadj_dir }}"
+        creates: "{{ ryzenadj_dir }}/build/CMakeCache.txt"
+
+    - name: Check if RyzenAdj binary already exists
+      ansible.builtin.stat:
+        path: "{{ ryzenadj_dir }}/build/ryzenadj"
+      register: ryzenadj_binary
+
+    - name: Build RyzenAdj with make
+      community.general.make:
+        chdir: "{{ ryzenadj_dir }}/build"
+      when: not ryzenadj_binary.stat.exists
+
+    - name: Install ryzenadj binary to /usr/local/bin
+      ansible.builtin.copy:
+        src: "{{ ryzenadj_dir }}/build/ryzenadj"
+        dest: /usr/local/bin/ryzenadj
+        mode: '0755'
+        remote_src: true
+
+    - name: Persist ryzenadj lower power settings via systemd
+      block:
+        - name: Create systemd service file
+          ansible.builtin.template:
+            src: ryzenadj.service.j2
+            dest: /etc/systemd/system/ryzenadj.service
+            mode: '0644'
+
+    - name: Reload systemd and enable service
+      ansible.builtin.systemd:
+        name: ryzenadj
+        enabled: true
+        state: started
+        daemon_reload: true

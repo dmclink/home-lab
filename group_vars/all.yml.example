@@ -1,0 +1,17 @@
+# initial db name and user for postgres setup
+db_super_user: "user"
+db_initial_name: "database"
+
+# ip and port for machine that will store and serve k3s image registry
+registry_host: "192.x.y.z"  
+registry_port: "5000"
+# hostname of your current machine you run ansible from
+control_node_host: "control_node"
+
+# pn50 settings
+# WARNING: this is in watts! enter some value such as 15 to set tdp target to 15W
+# defaults to 15 if var not included
+ryzen_wattage: 11
+# degrees Celsius where throttling kicks in, lower limits can prevent fan noise
+# defaults to 75 if var not included
+ryzen_temp_limit: 75
