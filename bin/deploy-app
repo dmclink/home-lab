@@ -1,0 +1,40 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+APPS_DIR="$PROJECT_ROOT/apps"
+
+mapfile -t APPS < <(find "$APPS_DIR" -maxdepth 1 -mindepth 1 -type d -not -path '*/.*' -printf "%f\n")
+
+if [ -n "$1" ]; then
+    # app name provided
+    APP_NAME="$1"
+    if [ ! -d "$APPS_DIR/$APP_NAME" ]; then
+        echo "Error: App '$APP_NAME' not found in $APPS_DIR"
+        echo "Check spelling or try running without app name passed to argument to search"
+        exit 1
+    fi
+else
+    # no app name provided, show ui
+    if command -v fzf >/dev/null 2>&1; then
+        # Use fzf if installed
+        APP_NAME=$(printf "%s\n" "${APPS[@]}" | fzf --height 40% --reverse --header "Select App:")
+    else
+        # Fallback to standard Bash select
+        echo "fzf not found, falling back to standard menu..."
+        PS3="Select an app (number): "
+        select CHOICE in "${APPS[@]}"; do
+            [[ -n "$CHOICE" ]] && APP_NAME="$CHOICE" && break
+        done
+    fi
+fi
+
+[[ -z "$APP_NAME" ]] && exit 1
+
+echo "Deploying app: $APP_NAME..."
+
+ansible-playbook "$PROJECT_ROOT/playbooks/deploy_app.yml" \
+    -i "${PROJECT_ROOT}/inventory.yml" \
+    -e "app_name=$APP_NAME" \
+    -e "project_root=$PROJECT_ROOT"

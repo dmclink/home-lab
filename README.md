@@ -13,6 +13,10 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
 4. Total system bootstrap and setup: from root run command
   - ensure user has sudo privileges on all devices
 `ansible-playbook site.yml -i inventory.yml -K --ask-vault-password`
+5. If inventory.ini format or a different location for the file is preferred, update the inventory path in ansible.cfg and in the bin/deploy-app script
+
+# Dependencies
+1. fzf for deploy-app script (soft dependency)
 
 ## Usage
 - Adding new hardware run command:
@@ -22,3 +26,8 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
   - cd into new project and git init, gh repo create git submodule add
 - Adding new app (single deploy) run command from project root:
 `ansible-playbook playbooks/deploy_app.yml -i inventory.yml -e app_name=my-new-app-name`
+- Alternatively use the deploy-app script from anywhere
+- bring up a menu of all apps in /apps/ directory
+`deploy-app`
+- deploy app directly
+`deploy-app my-app-name`
