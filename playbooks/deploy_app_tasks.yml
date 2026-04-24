@@ -5,6 +5,7 @@
 - name: Build image with Podman
   containers.podman.podman_image:
     name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+    tag: "{{ app_hash }}"
     path: "{{ project_root }}/apps/{{ app_name }}"
     build:
       extra_args: "--tls-verify=false --build-arg APP_NAME={{ app_name }}"
@@ -17,8 +18,6 @@
     tag: "{{ app_hash }}"
     push: true
     tls_verify: false
-    push_args:
-      dest: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
   when: build_result.changed
 
 - name: Apply K8s Manifest
@@ -31,3 +30,9 @@
   become: false
   environment:
     KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config"
+
+- name: Prune old dangling images to save space
+  containers.podman.podman_image:
+    state: absent
+    name: "dangling"
+  ignore_errors: true
