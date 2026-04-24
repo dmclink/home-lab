@@ -3,7 +3,7 @@
     name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
     path: "{{ project_root }}/apps/{{ app_name }}"
     build:
-      extra_args: "--tls-verify=false"
+      extra_args: "--tls-verify=false --build-arg APP_NAME={{ app_name }}"
     state: build
     force: true
 
@@ -18,4 +18,10 @@
 - name: Apply K8s Manifest
   kubernetes.core.k8s:
     state: present
+    kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/config"
+    context: default
     definition: "{{ lookup('ansible.builtin.template', '../apps/' + app_name + '/k8s.yml.j2') }}"
+  delegate_to: localhost
+  become: false
+  environment:
+    KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config"

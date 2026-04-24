@@ -7,17 +7,17 @@ RUN apt-get update && apt-get install -y \
     g++-14 \
     && rm -rf /var/lib/apt/lists/*
 
-ENV CC=gcc-14
-ENV CXX=g++-14
-
+ENV CC=gcc-14 CXX=g++-14
+ARG APP_NAME
 WORKDIR /src
 COPY . .
 
-RUN cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build build
-
+RUN cmake -B build -S . -DCMAKE_BUILD_TYPE=RELEASE -DAPP_NAME=${APP_NAME} \
+    && cmake --build build \
+    && cmake --install build --prefix /install
 
 FROM debian:trixie-slim
+ARG APP_NAME
 
 RUN apt-get update && apt-get install -y \
     libstdc++6 \
@@ -25,7 +25,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY --from=builder /src/build/* /usr/local/bin/
+COPY --from=builder /install/bin/${APP_NAME} /usr/local/bin/${APP_NAME}
+RUN chmod +x /usr/local/bin/${APP_NAME}
 
-# start the binary (matches the directory name)
-ENTRYPOINT ["sh", "-c", "exec $(ls /usr/local/bin/* | head -n 1)"]
+ENV EXE_NAME=${APP_NAME}
+ENTRYPOINT /usr/local/bin/${EXE_NAME}
