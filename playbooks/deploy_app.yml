@@ -16,12 +16,12 @@
 
     - name: Verify app directory exists
       ansible.builtin.stat:
-        path: "../apps/{{ app_name }}"
+        path: "{{ project_root }}/apps/{{ app_name }}"
       register: app_dir
 
     - name: Fail if app directory is missing
       ansible.builtin.fail:
-        msg: "Error: App folder '../apps/{{ app_name }}' not found."
+        msg: "Error: App folder '{{ project_root }}/apps/{{ app_name }}' not found."
       when: not app_dir.stat.exists or not app_dir.stat.isdir
 
 - name: Deploy app

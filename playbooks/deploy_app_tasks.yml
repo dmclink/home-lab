@@ -1,3 +1,7 @@
+- name: Get source hash for {{ app_name }}
+  ansible.builtin.set_fact:
+    app_hash: "{{ lookup('ansible.builtin.pipe', 'find ' + project_root + '/apps/' + app_name + ' -type f -not -path \"*/.*\" -exec md5sum {} + | sort | md5sum | cut -d\" \" -f1') }}"
+
 - name: Build image with Podman
   containers.podman.podman_image:
     name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
@@ -5,15 +9,17 @@
     build:
       extra_args: "--tls-verify=false --build-arg APP_NAME={{ app_name }}"
     state: build
-    force: true
+  register: build_result
 
 - name: Push to local registry
   containers.podman.podman_image:
     name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+    tag: "{{ app_hash }}"
     push: true
     tls_verify: false
     push_args:
       dest: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+  when: build_result.changed
 
 - name: Apply K8s Manifest
   kubernetes.core.k8s:
