@@ -20,6 +20,15 @@
     tls_verify: false
   when: build_result.changed
 
+- name: Ensure namespace exists for {{ app_name }}
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ app_name }}"
+
 - name: Apply K8s Manifest
   kubernetes.core.k8s:
     state: present
