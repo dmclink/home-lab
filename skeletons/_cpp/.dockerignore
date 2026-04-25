@@ -86,3 +86,7 @@ README.md
 **/*.o
 **/*.out
 **/*.obj
+
+app_vars.yml
+vault.yml
+vault.yml.example

@@ -4,10 +4,12 @@ metadata:
   name: postgres-service
   namespace: database
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
     app: postgres
   ports:
-    - protocol: TCP
+    - name: postgres
       port: 5432
       targetPort: 5432
+      nodePort: {{ db_node_port | int }}
+      protocol: TCP

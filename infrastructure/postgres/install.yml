@@ -2,12 +2,17 @@
   hosts: db_servers
   become: true
   vars_files:
-    - "../../secret_vars.yml"
+    - "{{ project_root }}/vault.yml"
   module_defaults:
     kubernetes.core.k8s:
       kubeconfig: /etc/rancher/k3s/k3s.yaml
 
   tasks:
+    - name: Install dependencies
+      ansible.builtin.package:
+        name: python3-psycopg2
+        state: present
+
     - name: Create kubernetes namespace for database
       kubernetes.core.k8s:
         definition: "{{ lookup('template', './namespace.yml.j2') }}"

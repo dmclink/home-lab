@@ -20,6 +20,16 @@
     tls_verify: false
   when: build_result.changed
 
+- name: Load app-specific variables
+  ansible.builtin.include_vars:
+    file: "{{ project_root }}/apps/{{ app_name }}/app_vars.yml"
+  failed_when: false
+
+- name: Generate app database password
+  set_fact:
+    current_app_pass: "{{ vault_app_password | default(lookup('password', '/dev/null chars=ascii_letters,digits length=32 seed=' + app_name + vault_password_generation_seed)) }}"
+  when: needs_db | default(false) | bool
+
 - name: Ensure namespace exists for {{ app_name }}
   kubernetes.core.k8s:
     state: present
@@ -28,6 +38,45 @@
       kind: Namespace
       metadata:
         name: "{{ app_name }}"
+
+- name: Create database secret in K8s
+  kubernetes.core.k8s:
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata: 
+        name: db-config
+        namespace: "{{ app_name }}"
+      stringData:
+        DATABASE_URL: "postgresql://{{ app_name }}:{{ current_app_pass }}@{{ db_host }}:{{ db_port }}/{{ db_name | default(app_name) }}"
+  when: needs_db | default(false) | bool
+
+- name: Ensure app database user exists
+  community.postgresql.postgresql_user:
+    name: "{{ app_name }}"
+    password: "{{ current_app_pass }}"
+    state: present
+    login_host: "{{ groups['db_servers'][0] }}"
+    login_user: "{{ db_super_user | default('postgres') }}"
+    login_db: "{{ db_initial_name | default('postgres') }}"
+    login_password: "{{ vault_postgres_password }}"
+    port: "{{ db_node_port | int }}"
+  delegate_to: "{{ groups['db_servers'][0] }}"
+  run_once: true
+  when: needs_db | default(false) | bool
+
+- name: Ensure application database exists
+  community.postgresql.postgresql_db:
+    name: "{{ db_name | default(app_name) }}"
+    owner: "{{ app_name }}"
+    state: present
+    login_host: "{{ groups['db_servers'][0] }}"
+    login_user: "{{ db_super_user | default('postgres') }}"
+    login_password: "{{ vault_postgres_password }}"
+    port: "{{ db_node_port | int }}"
+  delegate_to: "{{ groups['db_servers'][0] }}"
+  run_once: true
+  when: needs_db | default(false) | bool
 
 - name: Apply K8s Manifest
   kubernetes.core.k8s:

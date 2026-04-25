@@ -17,6 +17,20 @@ spec:
       - name: main
         image: "{{ registry_ip }}:{{ registry_port | default(5000) }}/{{ app_name }}:{{ app_hash }}"
         imagePullPolicy: Always  
+        env:
+          - name: APP_NAME
+            value: "{{ app_name }}"
+#          {% if needs_db | default(true) %}
+          - name: DB_HOST
+            value: "{{ db_host }}"
+          - name: DB_PORT
+            value: "{{ db_port | default('5432') }}"
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: db-config
+                key: DATABASE_URL
+#          {% endif %}
       
       - name: health-sidecar
         image: alpine:latest

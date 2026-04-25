@@ -7,7 +7,7 @@ Headless mini-pc cluster managed remotely. Allows for development and simplified
 - `/skeletons`: Blueprint folders (e.g., `_cpp`) used to bootstrap new apps.
 - `/infrastructure`: Third-party services and cluster foundations (K3s, Postgres, Registry).
 - `/playbooks`: Workflow automation (deployment engine) and system tuning (power limits).
-- `/group_vars` & `secret_vars.yml`: Configuration and encrypted Vault secrets.
+- `/group_vars` & `vault.yml`: Configuration and encrypted Vault secrets.
 
 ## Application Standards
 - Submodules: Every directory in `/apps` must be a standalone Git submodule.

@@ -17,9 +17,9 @@ ryzen_wattage: 11
 # defaults to 75 if var not included
 ryzen_temp_limit: 75
 
-registry_host: "pn50-01"  
-registry_port: "5000"
-control_node_host: "msi-ge76"
-
 # allows us to call plays from different locations and reference templates from different plays located in diff dirs
 project_root: "{{ lookup('pipe', 'git rev-parse --show-toplevel') }}"
+
+db_host: postgres-service.database.svc.cluster.local
+db_port: 5432
+db_node_port: 30893

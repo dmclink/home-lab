@@ -9,6 +9,7 @@ group_vars/all.yml
 
 # contains passwords
 secret_vars.yml
+vault.yml
 
 # The default root path for Ansible config files on the controller
 .ansible/
