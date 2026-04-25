@@ -1,0 +1,77 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+APPS_DIR="$PROJECT_ROOT/apps"
+SKELETONS_DIR="$PROJECT_ROOT/skeletons"
+
+read -p "Enter the project name: " APP_NAME
+
+if [ -z "$APP_NAME" ]; then
+    echo "Error: App name cannot be empty."
+    exit 1
+fi
+
+if [ -d "$APPS_DIR/$APP_NAME" ]; then
+    echo "An app by that name already exists. Exiting to avoid overwriting: $APP_NAME"
+    exit 1
+fi
+
+echo "New app: $APP_NAME"
+declare -A SKELETON_MAP
+SKELETON_MAP["C++"]="${SKELETONS_DIR}/_cpp"
+
+echo "Select project type:"
+
+LABELS=("C++")
+select CHOICE in "${!SKELETON_MAP[@]}" "Quit"; do
+    if [[ "$CHOICE" == "Quit" ]]; then
+        exit 0
+    fi
+
+    if [[ -n "$CHOICE" ]]; then
+        SKELETON_PATH="${SKELETON_MAP[$CHOICE]}"
+
+        if [[ -d "$SKELETON_PATH" ]]; then
+            # success
+            break
+        else
+            echo "Error: Directory $SKELETON_PATH does not exist!"
+            echo "Please check your mapping in the script."
+            exit 1
+        fi
+    else
+        echo "Invalid selection, try again."
+    fi
+done
+
+APP_DIR="${APPS_DIR}/$APP_NAME"
+
+mkdir -p $APP_DIR
+cp -r "$SKELETON_PATH/." $APP_DIR
+
+cd $APP_DIR || exit 1
+
+cat <<EOF > "$APP_DIR/README.md"
+# $APP_NAME
+
+## Description
+TODO: Short description of what this app does.
+
+## Requirements
+TODO: List dependencies
+
+## Usage
+TODO: Describe how to use app
+EOF
+
+git init
+git add .
+git commit -m "Initial commit from skeleton: $CHOICE"
+
+cd $PROJECT_ROOT
+echo "Registering $APP_NAME as a submodule..."
+git submodule add "./apps/$APP_NAME" "apps/$APP_NAME"
+
+echo "Successfully initialized $APP_NAME"

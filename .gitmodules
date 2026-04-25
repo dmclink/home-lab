@@ -1,0 +1,9 @@
+[submodule "apps/hello-postgres"]
+	path = apps/hello-postgres
+	url = ./apps/hello-postgres/
+[submodule "apps/blarg"]
+	path = apps/blarg
+	url = ./apps/blarg
+[submodule "apps/blarg2"]
+	path = apps/blarg2
+	url = ./apps/blarg2

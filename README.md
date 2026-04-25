@@ -28,6 +28,7 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
 `ansible-playbook site.yml -i inventory.yml -K --ask-vault-password`
 - Start developing a new app copy the project from skeletons:
 `cp -r skeletons/_cpp apps/my-new-app-name`
+  - alternatively run script `new-app` and follow prompts to copy folder and initialize git submodule
 - add any dependencies to both stages of the build in the new app's Dockerfile ie. libpqxx-dev / libpqxx-7.7
 - link any dependency headers in the CMakeLists.txt file if necessary ie `target_link_libraries(${PROJECT_NAME} PRIVATE pqxx)`
 - cd into new project and git init, gh repo create git submodule add
