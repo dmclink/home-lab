@@ -45,3 +45,4 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
     - this is also modifiable in k8s.yml.j2 template
 - if app needs a connection to the bootstrapped database, go into the app_vars.yml and set needs_db to true 
   - auto creates a database user of the same name as app name
+- manually accessing the database can be done with script `db-shell`
