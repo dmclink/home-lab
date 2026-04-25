@@ -21,6 +21,7 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
 
 # Dependencies
 1. fzf for deploy-app script (soft dependency)
+2. yq for db-shell script (soft dependency)
 
 ## Usage
 - Adding new hardware run command:
