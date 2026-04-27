@@ -19,7 +19,9 @@ done
 DB_SUPER_USER=$(yq '.db_super_user' group_vars/all.yml)
 DB_INITIAL_NAME=$(yq '.db_initial_name' group_vars/all.yml)
 
+DB_NAME="${1:-$DB_INITIAL_NAME}"
 
-psql -h 127.0.0.1 -p 5433 -U $DB_SUPER_USER -d $DB_INITIAL_NAME
+
+psql -h 127.0.0.1 -p 5433 -U $DB_SUPER_USER -d $DB_NAME
 
 echo "Tunnel closed."
