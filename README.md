@@ -45,6 +45,13 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
     - this is modifiable in k8s.yml.j2 template
   - by default the connection string will connect to the database of the same name as the app unless db_name variable is set in project
     - this is also modifiable in k8s.yml.j2 template
-- if app needs a connection to the bootstrapped database, go into the app_vars.yml and set needs_db to true 
+- if app needs a connection to the bootstrapped database, go into the config.yml and set needs_db to true 
   - auto creates a database user of the same name as app name
 - manually accessing the database can be done with script `db-shell`
+
+Command            | Action on config.yml | Cluster Pods | Database | Namespace | Local Folder | deploy-all Behavior
+---
+app deploy         | Sets enabled: true   | Running      | Exists   | Exists    | Exists       | Deploys/Updates
+app disable        | Sets enabled: false  | Deleted      | Exists   | Exists    | Exists       | Ignored
+app remove         | N/A (Folder Deleted) | Deleted      | Exists   | Exists    | Deleted      | Ignored
+app remove --purge | N/A (Folder Deleted) | Deleted      | Deleted  | Deleted   | Deleted      | Ignored

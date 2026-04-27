@@ -14,23 +14,25 @@
         msg: "Error: 'app_name' variable is missing. Run with: -e 'app_name=your_app'"
       when: app_name is undefined or app_name | length == 0
 
+    - name: Set app directory path
+      ansible.builtin.set_fact:
+        app_dir: "{{ project_root }}/apps/{{ app_name }}"
+
     - name: Verify app directory exists
       ansible.builtin.stat:
-        path: "{{ project_root }}/apps/{{ app_name }}"
-      register: app_dir
+        path: "{{ app_dir }}"
+      register: check_dir
 
     - name: Fail if app directory is missing
       ansible.builtin.fail:
-        msg: "Error: App folder '{{ project_root }}/apps/{{ app_name }}' not found."
-      when: not app_dir.stat.exists or not app_dir.stat.isdir
+        msg: "Error: App folder '{{ app_dir }}' not found."
+      when: not check_dir.stat.exists or not check_dir.stat.isdir
 
 - name: Deploy app
   hosts: localhost
   gather_facts: true
   vars_files:
     - "{{ project_root }}/vault.yml"
-    - "{{ project_root }}/apps/{{ app_name }}/vault.yml"
-    - "{{ project_root }}/apps/{{ app_name }}/vault.yml"
   tasks:
     - name: Run deployment
       ansible.builtin.include_tasks: deploy_app_tasks.yml

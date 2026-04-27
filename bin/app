@@ -9,26 +9,28 @@ usage() {
     echo "Usage: app [command] [app_name]"
     echo ""
     echo "Commands:"
-    echo "  deploy <name>     Initialize and deploy a new app"
-    echo "  teardown <name>   Remove app from cluster and mark absent"
-    echo "  db <name>      Open a psql tunnel to the app's database"
-    echo "  list              List all apps in the apps/ directory"
-    echo "  -h, --help        Show this help message"
+    echo "  deploy <name>           Initialize and deploy a new app"
+    echo "  disable <name>          Remove app from cluster and mark absent"
+    echo "  remove <name>           Remove app from cluster and delete local files"
+    echo "  remove <name> --purge   Delete app from cluster and namespace, delete local files, and delete all persistent data and databases"
+    echo "  db <name>               Open a psql tunnel to the app's database"
+    echo "  list                    List all apps in the apps/ directory"
+    echo "  -h, --help              Show this help message"
 }
 
+# TODO: add commands like status to check the config file flags and app orphans to list databases users in postgres that no longer have a matching folder
+# TODO: cleanup task that compares active namespaces/labels on the cluster against local /apps folder
+# TODO: app enable that doesn't deploy?
+
 COMMAND=$1
-APP_NAME=$2
+shift
 
 case $COMMAND in
-    deploy)
-        "$SCRIPT_DIR/deploy-app" "$APP_NAME"
-        ;;
-    teardown)
-        if [ -z $APP_NAME ]; then echo "Error: name required"; exit 1; fi
-        "$SCRIPT_DIR/teardown-app" "$APP_NAME"
+    deploy|remove|disable)
+        "$SCRIPT_DIR/deploy-app" "$COMMAND" "$@"
         ;;
     db)
-        "$SCRIPT_DIR/db-shell" "$APP_NAME"
+        "$SCRIPT_DIR/db-shell" "$1"
         ;;
     list)
         ls "$APPS_DIR"

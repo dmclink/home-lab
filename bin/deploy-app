@@ -1,28 +1,25 @@
 #!/bin/bash
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 APPS_DIR="$PROJECT_ROOT/apps"
 
+ACTION="${1:-deploy}"
+shift
+APP_NAME="$1"
+shift
+
+IS_PURGE=false
+for arg in "$@"; do
+    [[ "$arg" == "--purge" ]] && IS_PURGE=true
+done
+
 mapfile -t APPS < <(find "$APPS_DIR" -maxdepth 1 -mindepth 1 -type d -not -path '*/.*' -printf "%f\n")
 
-if [ -n "$1" ]; then
-    # app name provided
-    APP_NAME="$1"
-    if [ ! -d "$APPS_DIR/$APP_NAME" ]; then
-        echo "Error: App '$APP_NAME' not found in $APPS_DIR"
-        echo "Check spelling or try running without app name passed to argument to search"
-        exit 1
-    fi
-else
-    # no app name provided, show ui
+if [ -z "$APP_NAME" ]; then
     if command -v fzf >/dev/null 2>&1; then
-        # Use fzf if installed
-        APP_NAME=$(printf "%s\n" "${APPS[@]}" | fzf --height 40% --reverse --header "Select App:")
+        APP_NAME=$(printf "%s\n" "${APPS[@]}" | fzf --height 40% --reverse --header "Select App for [$ACTION]:")
     else
-        # Fallback to standard Bash select
-        echo "fzf not found, falling back to standard menu..."
         PS3="Select an app (number): "
         select CHOICE in "${APPS[@]}"; do
             [[ -n "$CHOICE" ]] && APP_NAME="$CHOICE" && break
@@ -31,10 +28,49 @@ else
 fi
 
 [[ -z "$APP_NAME" ]] && exit 1
+CONFIG_FILE="$APPS_DIR/$APP_NAME/config.yml"
 
-echo "Deploying app: $APP_NAME..."
+EXTRA_VARS="app_name=$APP_NAME project_root=$PROJECT_ROOT"
+
+case "$ACTION" in
+    deploy)
+        echo "Deploying app: $APP_NAME..."
+        if [ -f "$CONFIG_FILE" ]; then
+            yq -i '.enabled = true' "$CONFIG_FILE"
+            git add "$CONFIG_FILE"
+        fi
+        ;;
+    disable)
+        echo "Disabling app: $APP_NAME..."
+        touch "$CONFIG_FILE"
+        yq -i '.enabled = false' "$CONFIG_FILE"
+        git add "$CONFIG_FILE"
+        ;;
+    remove)
+        EXTRA_VARS="$EXTRA_VARS app_state=absent"
+        if [ "$IS_PURGE" = true ]; then
+            echo "⚠️  Confirm PURGE of all data for app: '$APP_NAME'"
+            read -p "WARNING: includes local files and cluster database data! (y/N): " confirm
+            [[ "$confirm" != [yY] ]] && exit 1
+            EXTRA_VARS="$EXTRA_VARS purge=true"
+            echo "Purging app: $APP_NAME..."
+        else
+            read -p "⚠️  Confirm removal of all local files for app: '$APP_NAME' (y/N): " confirm
+            [[ "$confirm" != [yY] ]] && exit 1
+            echo "Removing app: $APP_NAME..."
+        fi
+        ;;
+esac
 
 ansible-playbook "$PROJECT_ROOT/playbooks/deploy_app.yml" \
     -i "${PROJECT_ROOT}/inventory.yml" \
-    -e "app_name=$APP_NAME" \
-    -e "project_root=$PROJECT_ROOT"
+    -e "$EXTRA_VARS"
+
+# local cleanup
+if [[ $? -eq 0 && "$ACTION" == "remove" ]]; then
+    echo "Fully removing $APP_NAME..."
+    git rm -f "apps/$APP_NAME" 2>/dev/null
+    rm -rf "apps/$APP_NAME"
+    rm -rf ".git/modules/apps/$APP_NAME"
+    echo "Local files and Git references cleared."
+fi
