@@ -238,23 +238,27 @@
     - name: Install helm
       become: true
       block:
-        - name: Try to install Helm via system package manager
-          ansible.builtin.dnf:
-            name: helm
-            state: present
-          register: helm_pkg_install
-          ignore_errors: true
+        # - name: Try to install Helm via system package manager
+        #   ansible.builtin.package:
+        #     name: helm
+        #     state: present
+        #   register: helm_pkg_install
+        #   ignore_errors: true
 
-        # - name: Check if Helm is installed
-        #   ansible.builtin.command: helm version --short
-        #   register: helm_check
-        #   failed_when: false
-        #   changed_when: false
-        #   when: helm_pkg_install is failed
-        #
-        # - name: Install Helm
-        #   ansible.builtin.shell: |
-        #     curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
-        #   environment:
-        #     KUBECONFIG: "{{ local_kubeconfig }}"
-        #   when: helm_check.rc != 0 and helm_pkg_install is failed
+        - name: Check if Helm is installed
+          ansible.builtin.command: helm version --short
+          register: helm_check
+          failed_when: false
+          changed_when: false
+
+        - name: Install Helm
+          ansible.builtin.shell: |
+            curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+          environment:
+            KUBECONFIG: "{{ local_kubeconfig }}"
+          when: helm_check.rc != 0
+
+        - name: Install helm-diff plugin
+          kubernetes.core.helm_plugin:
+            plugin_path: "https://github.com/databus23/helm-diff"
+            state: present

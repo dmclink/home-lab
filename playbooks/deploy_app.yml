@@ -3,10 +3,11 @@
 # Requirements:
 #   - Variable 'app_name' must match a folder in /apps/
 #   - Control node must have Podman installed.
-#   - App directory in /apps/ must have k8s.yml.j2 deployment manifest in root
+#   - App directory in /apps/ must have values.yaml helm values file in root
 # Target: Localhost (Build) -> K3s_Servers (Deploy)
 - name: Pre-flight App Validation
   hosts: localhost
+  connection: local
   gather_facts: false
   tasks:
     - name: Ensure app_name variable is provided
@@ -14,9 +15,11 @@
         msg: "Error: 'app_name' variable is missing. Run with: -e 'app_name=your_app'"
       when: app_name is undefined or app_name | length == 0
 
-    - name: Set app directory path
+    - name: Set paths
       ansible.builtin.set_fact:
         app_dir: "{{ project_root }}/apps/{{ app_name }}"
+        chart_dir: "{{ project_root }}/charts/common-service"
+        values_file: "{{ project_root }}/apps/{{ app_name }}/values.yaml"
 
     - name: Verify app directory exists
       ansible.builtin.stat:
@@ -30,6 +33,7 @@
 
 - name: Deploy app
   hosts: localhost
+  connection: local
   gather_facts: true
   vars_files:
     - "{{ project_root }}/vault.yml"

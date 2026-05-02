@@ -28,7 +28,7 @@ if [ -z "$APP_NAME" ]; then
 fi
 
 [[ -z "$APP_NAME" ]] && exit 1
-CONFIG_FILE="$APPS_DIR/$APP_NAME/config.yml"
+CONFIG_FILE="$APPS_DIR/$APP_NAME/values.yaml"
 
 EXTRA_VARS="app_name=$APP_NAME project_root=$PROJECT_ROOT"
 

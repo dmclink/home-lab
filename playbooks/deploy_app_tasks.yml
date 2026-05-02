@@ -1,7 +1,7 @@
-- name: Load app-specific variables/configuration
+- name: Load app values
   ansible.builtin.include_vars:
-    file: "{{ app_dir }}/config.yml"
-    name: app_config
+    file: "{{ values_file }}"
+    name: helm_vars
   failed_when: false
 
 - name: Load app-specific secrets
@@ -11,25 +11,21 @@
 
 - name: Set operational state
   ansible.builtin.set_fact:
-    final_state: "{{ app_state if vars['app_state'] is defined else ('present' if (app_config.enabled | default(true) | bool) else 'absent') }}"
-    is_purge: "{{ (vars['purge'] | default(false) | bool) }}"
-
-
-- name: Debug app_state
-  ansible.builtin.debug:
-    msg: "app_state: {{ app_state }}"
-
+    # Use helm_vars.enabled directly
+    workload_state: "{{ 'absent' if (purge | default(false) | bool or not helm_vars.enabled | default(true)) else 'present' }}"
+    is_purge: "{{ purge | default(false) | bool }}"
+    db_state: "{{ 'absent' if (purge | default(false) | bool) else 'present' }}"
 
 - name: Get source hash for {{ app_name }}
   ansible.builtin.set_fact:
     app_hash: "{{ lookup('ansible.builtin.pipe', 'find ' + project_root + '/apps/' + app_name + ' -type f -not -path \"*/.*\" -exec md5sum {} + | sort | md5sum | cut -d\" \" -f1') }}"
 
 - name: Build and push image
-  when: final_state == 'present'
+  when: workload_state == 'present'
   block:
   - name: Build image with Podman
     containers.podman.podman_image:
-      name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+      name: "{{ registry_ip }}:{{ registry_port }}/{{ app_name }}"
       tag: "{{ app_hash }}"
       path: "{{ project_root }}/apps/{{ app_name }}"
       build:
@@ -39,35 +35,26 @@
 
   - name: Push to local registry
     containers.podman.podman_image:
-      name: "{{ registry_host }}:{{ registry_port }}/{{ app_name }}"
+      name: "{{ registry_ip }}:{{ registry_port }}/{{ app_name }}"
       tag: "{{ app_hash }}"
       push: true
       tls_verify: false
     when: build_result.changed
 
 - name: Postgres database management
-  when: app_config.needs_db | default(false) | bool
+  when: helm_vars.postgres.enabled | default(false) | bool
   block:
   - name: Generate app database password
     set_fact:
       current_app_pass: "{{ vault_app_password | default(lookup('password', '/dev/null chars=ascii_letters,digits length=32 seed=' + app_name + vault_password_generation_seed)) }}"
-
-  - name: Create database secret in K8s
-    kubernetes.core.k8s:
-      definition:
-        apiVersion: v1
-        kind: Secret
-        metadata: 
-          name: db-config
-          namespace: "{{ app_name }}"
-        stringData:
-          DATABASE_URL: "postgresql://{{ app_name }}:{{ current_app_pass }}@{{ app_config.db_host }}:{{ app_config.db_port }}/{{ app_config.db_name | default(app_name) }}"
+    delegate_to: localhost
+    delegate_facts: true
 
   - name: Ensure app database user exists
     community.postgresql.postgresql_user:
       name: "{{ app_name }}"
       password: "{{ current_app_pass }}"
-      state: "{{ 'absent' if is_purge else 'present' }}"
+      state: "{{ db_state }}"
       login_host: "{{ groups['db_servers'][0] }}"
       login_user: "{{ db_super_user | default('postgres') }}"
       login_db: "{{ db_initial_name | default('postgres') }}"
@@ -78,9 +65,9 @@
 
   - name: Ensure application database exists
     community.postgresql.postgresql_db:
-      name: "{{ app_config.db_name | default(app_name) }}"
+      name: "{{ helm_vars.db_name | default(app_name) }}"
       owner: "{{ app_name }}"
-      state: "{{ 'absent' if is_purge else 'present' }}"
+      state: "{{ db_state }}"
       login_host: "{{ groups['db_servers'][0] }}"
       login_user: "{{ db_super_user | default('postgres') }}"
       login_password: "{{ vault_postgres_password }}"
@@ -88,25 +75,53 @@
     delegate_to: "{{ groups['db_servers'][0] }}"
     run_once: true
 
-- name: Ensure namespace exists for {{ app_name }}
-  kubernetes.core.k8s:
-    state: "{{ 'absent' if is_purge else 'present' }}"
-    definition:
-      apiVersion: v1
-      kind: Namespace
-      metadata:
-        name: "{{ app_name }}"
+# - name: Ensure namespace exists for {{ app_name }}
+#   kubernetes.core.k8s:
+#     state: "{{ 'absent' if is_purge else 'present' }}"
+#     definition:
+#       apiVersion: v1
+#       kind: Namespace
+#       metadata:
+#         name: "{{ app_name }}"
 
-- name: Apply K8s Manifest
-  kubernetes.core.k8s:
-    state: "{{ final_state }}"
-    kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/config"
-    context: default
-    definition: "{{ lookup('ansible.builtin.template', '../apps/' + app_name + '/k8s.yml.j2') }}"
+- name: Deploy or teardown via Helm
+  kubernetes.core.helm:
+    name: "{{ app_name }}"
+    chart_ref: "{{ project_root }}/charts/common-service"
+    release_namespace: "{{ app_name }}"
+    create_namespace: true
+    state: "{{ workload_state }}"
+    values_files: "{{ [values_file] if helm_vars is defined else None | select('string') | list }}"
+    values:
+      image:
+        repository: "{{ registry_ip }}:{{ registry_port }}/{{ app_name }}"
+        tag: "{{ app_hash }}"
+      postgres:
+        enabled: "{{ helm_vars.postgres.enabled | default(false) | bool }}"
+        url: "{{ helm_vars.postgres.url | default('') }}"
+        host: "{{ helm_vars.postgres.host | default('postgres-service.database.svc.cluster.local') }}"
+        password: "{{ current_app_pass }}"
+      global:
+        controlNodeHost: "{{ control_node_host }}"
   delegate_to: localhost
-  become: false
-  environment:
-    KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config"
+
+- name: Total Wipe (Purge) Namespace
+  kubernetes.core.k8s:
+    name: "{{ app_name }}"
+    kind: Namespace
+    state: absent
+  when: is_purge | bool
+
+# - name: Apply K8s Manifest
+#   kubernetes.core.k8s:
+#     state: "{{ workload_state }}"
+#     kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/config"
+#     context: default
+#     definition: "{{ lookup('ansible.builtin.template', '../apps/' + app_name + '/k8s.yml.j2') }}"
+#   delegate_to: localhost
+#   become: false
+#   environment:
+#     KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config"
 
 - name: Prune old dangling images to save space
   containers.podman.podman_image:

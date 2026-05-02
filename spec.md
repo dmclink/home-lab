@@ -1,9 +1,10 @@
 # Spec K3s Cluster Homelab/server
 ## Vision
-Headless mini-pc cluster managed remotely. Allows for development and simplified deployment in apps of various languages. Utilizes K3s for orchestration, consolidated monitoring, and container management. Leverages Ansible as the single source of truth for hardware and software configuration.
+Headless mini-pc cluster managed remotely. Allows for development and simplified deployment in apps of various languages. Utilizes K3s for orchestration, consolidated monitoring, and container management. Leverages Ansible as the single source of truth for hardware and software configuration and Helm for standardized application packaging.
 
 ## Directory Structure
 - `/apps`: Active, buildable custom application submodules (C++, Go, etc.). 
+- `/charts`: Internal Helm charts (e.g., common-service) providing the boilerplate for all workloads.
 - `/skeletons`: Blueprint folders (e.g., `_cpp`) used to bootstrap new apps.
 - `/infrastructure`: Third-party services and cluster foundations (K3s, Postgres, Registry).
 - `/playbooks`: Workflow automation (deployment engine) and system tuning (power limits).
@@ -13,17 +14,19 @@ Headless mini-pc cluster managed remotely. Allows for development and simplified
 - Submodules: Every directory in `/apps` must be a standalone Git submodule.
 - Contract: To work with the global `deploy_app.yml` engine, every app must contain:
     - A `Dockerfile` in the root.
-    - A `k8s.yml.j2` template for Kubernetes deployment.
+    - A `values.yaml` to provide app-specific overrides to the common Helm chart.
     - It's own `.gitignore` and `.dockerignore` files
 - Bootstrapping: New apps should be created by copying a folder from `/skeletons`.
 
 ## Workflow
 - Full Provisioning: Run `ansible-playbook site.yml` to set up the entire lab from scratch.
-- App Development: Use `ansible-playbook playbooks/deploy_app.yml -e "app_name=<folder_name>"` for iterative builds.
+- App Development: Use `ansible-playbook playbooks/deploy_app.yml -e "app_name=<folder_name>"` for iterative builds and Helm upgrades.
 - Infrastructure Changes: Use tags to target specific layers, e.g.
+- State Management: App lifecycle (Enabled/Disabled) is controlled via the `enabled` flag within each app's `values.yaml`
 
 ## Core Requirements
 - Headless Operation: Debian Server OS running on Mini-PCs with no peripherals attached
+- Standardized Templates: Applications utilize a "Common Service" Helm chart to ensure consistent labels, environment variables, and sidecar injection across the cluster
 - Networking: Connectivity and remote access are managed via Tailscale for stable, "static" MagicDNS addressing and encrypted SSH
 - Automation-First: All configurations (OS tuning, K3s setup, registry creation) and deployments must be handled via Ansible playbooks from a Fedora control node
 - Observability:
@@ -39,11 +42,12 @@ Headless mini-pc cluster managed remotely. Allows for development and simplified
 - Connectivity: Tailscale (VPN/SSH/Static IPs)
 - Container Engine: Podman (Control Node for builds) / Containerd (K3s Managed Host)
 - Orchestration: K3s (Lightweight Kubernetes)
-- Automation: Ansible (using kubernetes.core and containers.podman collections)
-- Languages: C++26, Go, Python, JavaScript (Primary Apps), Jinja2 (Manifest Templating)
+- Automation: Ansible (using kubernetes.core.helm and containers.podman collections)
+- Languages: C++26, Go, Python, JavaScript (Primary Apps), Jinja2/Helm Templates (Manifest Logic)
 - Registry: Local Podman-hosted registry (Insecure/HTTP)
 - rsyslog: Configured on all mini-pcs to handle system telemetry requirement
 - Storage: PostgreSQL 18
+- Package Mangement: Helm v3 (used for templating and release lifecycle)
 
 ## Architecture
 Control Node (Fedora Laptop)

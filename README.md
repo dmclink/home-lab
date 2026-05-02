@@ -24,6 +24,15 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
 2. yq for db-shell script (soft dependency)
 
 ## Usage
+- Apps by default are passed the bootstrapped cluster database host address and port
+  - can be overwritten by adding app specific overrides in the values.yaml and overwriting the postgres.host or postgres.port variables
+  - built string from postgres.host and postgres.port will be stored in environment variable DATABASE_URL
+    - this is modifiable in the common-service Helm chart templates
+  - by default the connection string will connec tto the database of the same name as the app unless postgres.db_name variable is set in the app's values.yaml
+    - this is also modifiable in the common-service Helm chart templates
+- if app needs a connection to the boostrapped database, go into the projects values.yaml and set the postgres.enabled to true
+  - auto creates a database user of the same name as app name
+- check all pods deployed by this project `kubectl get pods -A -l managed-by=ansible-homelab`
 - Adding new hardware run command:
 `ansible-playbook site.yml -i inventory.yml -K --ask-vault-password`
 - Start developing a new app copy the project from skeletons:
@@ -39,17 +48,9 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
 `deploy-app`
 - deploy app directly
 `deploy-app my-app-name`
-- apps by default are passed the bootstrapped cluster database host address and port
-  - can be overwritten by adding a app specific var and overwriting the db_host or db_port variables with desired 
-  - built string from db_host and db_port will be stored in environment variable DATABASE_URL
-    - this is modifiable in k8s.yml.j2 template
-  - by default the connection string will connect to the database of the same name as the app unless db_name variable is set in project
-    - this is also modifiable in k8s.yml.j2 template
-- if app needs a connection to the bootstrapped database, go into the config.yml and set needs_db to true 
-  - auto creates a database user of the same name as app name
 - manually accessing the database can be done with script `db-shell`
 
-Command            | Action on config.yml | Cluster Pods | Database | Namespace | Local Folder | deploy-all Behavior
+Command            | Action on values.yaml | Cluster Pods | Database | Namespace | Local Folder | deploy-all Behavior
 ---
 app deploy         | Sets enabled: true   | Running      | Exists   | Exists    | Exists       | Deploys/Updates
 app disable        | Sets enabled: false  | Deleted      | Exists   | Exists    | Exists       | Ignored

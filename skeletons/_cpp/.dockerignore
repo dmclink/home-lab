@@ -90,3 +90,6 @@ README.md
 app_vars.yml
 vault.yml
 vault.yml.example
+values.local.yaml
+values.yaml
+config.yml

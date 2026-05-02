@@ -28,3 +28,15 @@
     - name: Create Postgres Service
       kubernetes.core.k8s:
         definition: "{{ lookup('template', './service.yml.j2') }}"
+
+- name: Install python package for postgres on local machine
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - "{{ project_root }}/vault.yml"
+  tasks:
+    - name: Install dependencies
+      ansible.builtin.package:
+        name: python3-psycopg2
+        state: present

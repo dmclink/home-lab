@@ -19,8 +19,12 @@ usage() {
 }
 
 # TODO: add commands like status to check the config file flags and app orphans to list databases users in postgres that no longer have a matching folder
+# orphans check should iterate through namespaces and look for apps that i dont hvae folders for but are deployed on k3s
+# db-orphans to check for databases that i have no folders or no naamespces
 # TODO: cleanup task that compares active namespaces/labels on the cluster against local /apps folder
+# prune command to podman image prune on laptop and registry
 # TODO: app enable that doesn't deploy?
+# TODO: clone command that merges a repo with a skeleton, if config.yml or k8s.yml.j2 dont exist pulls them over
 
 COMMAND=$1
 shift
