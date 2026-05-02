@@ -1,10 +1,24 @@
 all:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3.13
   hosts:
     host1:
       ansible_host: host1.<your-tailnet-name>.ts.net
-      ansible_python_interpreter: /usr/bin/python3.13
 
   children:
+    # OS ROLES
+    fedora_hosts:
+      hosts:
+        localhost:
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
+
+    debian_hosts:
+      hosts:
+        pn50-01:
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
+
     # HARDWARE ROLES
     pn50s:
       hosts:

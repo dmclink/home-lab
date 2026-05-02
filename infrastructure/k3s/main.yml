@@ -83,13 +83,38 @@
       args:
         creates: /etc/systemd/system/k3s-agent.service
 
-- name: Configure control node and fetch kubeconfig
+# - name: Fetch K3s config from host
+#   hosts: "{{ groups['k3s_servers'][0] }}"
+#   become: true
+#   ansible.builtin.fetch:
+#     src: /etc/rancher/k3s/k3s.yaml
+#     dest: /tmp/k3s_from_server.yaml.tmp
+#     flat: true
+#   changed_when: false
+
+- name: Fetch K3s config from host
   hosts: k3s_servers
   become: true
-  run_once: true
   tasks:
-    - name: Install required python libraries for Kubernetese
+    - name: Fetch with slurp
+      ansible.builtin.slurp:
+        src: /etc/rancher/k3s/k3s.yaml
+      register: k3s_config_encoded
+
+    - name: Share config with the next play
+      ansible.builtin.set_fact:
+        shared_kubeconfig: "{{ k3s_config_encoded.content | b64decode }}"
       delegate_to: localhost
+      delegate_facts: true
+
+- name: Configure control node and fetch kubeconfig
+  hosts: localhost
+  connection: local
+  become: false
+  vars:
+    local_kubeconfig: "{{ lookup('env', 'HOME') }}/.kube/config"
+  tasks:
+    - name: Install required python libraries for Kubernetes
       become: true
       ansible.builtin.package:
         name:
@@ -98,7 +123,6 @@
         state: present 
 
     - name: Installing kubectl on control node
-      delegate_to: localhost
       block:
         - name: Check if kubectl is already installed
           ansible.builtin.command: kubectl version --client
@@ -171,7 +195,6 @@
             - user_confirmation.user_input | default('') | lower in ['y', 'yes']
 
         - name: Ensure required Ansible collections are installed
-          delegate_to: localhost
           ansible.builtin.command: "ansible-galaxy collection install {{ item }}"
           args:
             creates: "/usr/lib/python3.14/site-packages/ansible_collections/{{ item | replace('.', '/') }}"
@@ -180,7 +203,7 @@
             - containers.podman
 
         - name: Ensure podman is installed on Fedora control node
-          delegate_to: localhost
+          become: true
           ansible.builtin.package:
             name: podman
             state: present
@@ -192,13 +215,11 @@
             path: "~/.kube"
             state: directory
             mode: '0700'
-          delegate_to: localhost
 
         - name: Check if local kubeconfig already exists
           ansible.builtin.stat:
-            path: "{{ lookup('env', 'HOME') }}/.kube/config"
+            path: "{{ local_kubeconfig }}"
           register: kubeconfig_check
-          delegate_to: localhost
 
         - name: Warning and overwrite confirmation
           ansible.builtin.pause:
@@ -207,18 +228,33 @@
                 Fetching the new config will OVERWRITE any current cluster configurations
                 Press ENTER to continue and overwrite or Ctrl+C then 'A' to abort.
           when: kubeconfig_check.stat.exists
-          delegate_to: localhost
 
-        - name: Fetch K3s config from host
-          ansible.builtin.fetch:
-            src: /etc/rancher/k3s/k3s.yaml
-            dest: /tmp/k3s_from_server.yaml.tmp
-            flat: true
-          changed_when: false
-
-        - name: Update server address to mDNS
+        - name: Save the config locally
           ansible.builtin.copy:
-            content: "{{ lookup('file', '/tmp/k3s_from_server.yaml.tmp') | replace('127.0.0.1', inventory_hostname) }}"
-            dest: "{{ lookup('env', 'HOME') }}/.kube/config"
+            content: "{{ hostvars['localhost']['shared_kubeconfig'] | replace('127.0.0.1', groups['k3s_servers'][0]) }}"
+            dest: "{{ local_kubeconfig }}"
             mode: '0600'
-          delegate_to: localhost
+
+    - name: Install helm
+      become: true
+      block:
+        - name: Try to install Helm via system package manager
+          ansible.builtin.dnf:
+            name: helm
+            state: present
+          register: helm_pkg_install
+          ignore_errors: true
+
+        # - name: Check if Helm is installed
+        #   ansible.builtin.command: helm version --short
+        #   register: helm_check
+        #   failed_when: false
+        #   changed_when: false
+        #   when: helm_pkg_install is failed
+        #
+        # - name: Install Helm
+        #   ansible.builtin.shell: |
+        #     curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
+        #   environment:
+        #     KUBECONFIG: "{{ local_kubeconfig }}"
+        #   when: helm_check.rc != 0 and helm_pkg_install is failed
