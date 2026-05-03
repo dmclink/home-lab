@@ -2,10 +2,11 @@
   hosts: db_servers
   become: true
   vars_files:
+    - "{{ project_root }}/group_vars/all.yml"
     - "{{ project_root }}/vault.yml"
   module_defaults:
     kubernetes.core.k8s:
-      kubeconfig: /etc/rancher/k3s/k3s.yaml
+      kubeconfig: "{{ kubeconfig_path }}"
 
   tasks:
     - name: Install dependencies

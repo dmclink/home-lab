@@ -1,2 +1,3 @@
 vault_postgres_password="SuperSecretPassword1"
 vault_password_generation_seed="some-super-secret-seed-to-make-app-passwords"
+vault_cloudflare_tunnel_token="random-token-string-from-cloudflare-tunnel-setup"

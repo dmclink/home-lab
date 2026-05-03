@@ -34,6 +34,10 @@ all:
       hosts:
         host1:
 
+    cloudflared_server:
+      hosts:
+        host1:
+
     # K3S ROLES
     k3s_servers:
       hosts:

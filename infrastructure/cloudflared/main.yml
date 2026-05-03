@@ -1,0 +1,58 @@
+- name: Setup and deploy cloudflared container in k3s
+  hosts: cloudflared_server
+  vars_files:
+    - "{{ project_root }}/group_vars/all.yml"
+    - "{{ project_root }}/vault.yml"
+  module_defaults:
+    kubernetes.core.k8s:
+      kubeconfig: "{{ kubeconfig_path }}"
+  tasks:
+  - name: Create Cloudflare namespace
+    kubernetes.core.k8s:
+      name: cloudflare
+      kind: Namespace
+      state: present
+
+  - name: Create Cloudflare Tunnel Token secret
+    kubernetes.core.k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: tunnel-token
+          namespace: cloudflare
+        type: Opaque
+        data:
+          token: "{{ vault_cloudflare_tunnel_token | b64encode }}"
+
+  - name: Deploy cloudflared agent
+    kubernetes.core.k8s:
+      state: present
+      definition:
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: cloudflared
+          namespace: cloudflare
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: cloudflared
+          template:
+            metadata:
+              labels:
+                app: cloudflared
+            spec:
+              containers:
+                - name: cloudflared
+                  image: cloudflare/cloudflared:latest
+                  args: ["tunnel", "--no-autoupdate", "run"]
+                  env:
+                    - name: TUNNEL_TOKEN
+                      valueFrom:
+                        secretKeyRef:
+                          name: tunnel-token
+                          key: token
+

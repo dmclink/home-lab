@@ -1,0 +1,35 @@
+replicaCount: 1
+
+image:
+  repository: ""
+  pullPolicy: Always
+  tag: "latest"
+
+postgres:
+  enabled: false
+  host: "postgres-service.database.svc.cluster.local"
+  port: 5432
+  password: ""
+  db_name: ""
+  # environment variables
+  db_name_key: "POSTGRES_DB"
+  user_key: "POSTGRES_USER"
+  pass_key: "POSTGRES_PASSWORD"
+
+
+ingress:
+  enabled: false
+  host: "subdomain.mydomain.com"
+  # annotations: 
+  #   traefik.ingress.kubernetes.io/router.entrypoints: web
+
+service:
+  targetPort: 8080
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi

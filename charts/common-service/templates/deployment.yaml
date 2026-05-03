@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+    managed-by: "ansible-homelab"
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        managed-by: "ansible-homelab"
+    spec:
+      containers:
+      - name: main
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy | default "Always" }}
+        ports:
+          - name: http
+            containerPort: {{ .Values.service.targetPort | default 8080 }}
+            protocol: TCP
+        env:
+          - name: APP_NAME
+            value: {{ .Release.Name }}
+          {{- if .Values.postgres.enabled }}
+          - name: {{ .Values.postgres.db_name_key | quote }}
+            value: {{ .Values.postgres.db_name | default .Release.Name | quote }}
+          - name: {{ .Values.postgres.user_key | quote }}
+            value: {{ .Release.Name | quote }}
+          - name: "POSTGRES_HOST"
+            value: {{ .Values.postgres.host | quote }}
+          - name: {{ .Values.postgres.pass_key | quote }}
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Release.Name }}-secrets"
+                key: database-password
+          - name: DATABASE_URL
+            valueFrom:
+              secretKeyRef:
+                name: "{{ .Release.Name }}-secrets"
+                key: DATABASE_URL
+          {{- end }}
+
+      - name: health-sidecar
+        image: alpine:latest
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          apk add --no-cache wget
+          while true; do
+            payload="{\"service\": \"{{ .Release.Name }}\", \"status\": \"running\", \"host\": \"$NODE_NAME\"}"
+            wget -q --post-data="$payload" http://{{ .Values.global.controlNodeHost }}:9090/health -O - || true
+            sleep 30
+          done
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
