@@ -14,6 +14,7 @@ usage() {
     echo "  remove <name>           Remove app from cluster and delete local files"
     echo "  remove <name> --purge   Delete app from cluster and namespace, delete local files, and delete all persistent data and databases"
     echo "  db <name>               Open a psql tunnel to the app's database"
+    echo "  clone <repo-url>        Git clones a repo to the app directory, creates submodule, and merges missing skeleton files"
     echo "  list                    List all apps in the apps/ directory"
     echo "  -h, --help              Show this help message"
 }
@@ -24,7 +25,6 @@ usage() {
 # TODO: cleanup task that compares active namespaces/labels on the cluster against local /apps folder
 # prune command to podman image prune on laptop and registry
 # TODO: app enable that doesn't deploy?
-# TODO: clone command that merges a repo with a skeleton, if config.yml or k8s.yml.j2 dont exist pulls them over
 
 COMMAND=$1
 shift
@@ -35,6 +35,9 @@ case $COMMAND in
         ;;
     db)
         "$SCRIPT_DIR/db-shell" "$1"
+        ;;
+    clone)
+        "$SCRIPT_DIR/clone-app" "$@"
         ;;
     list)
         ls "$APPS_DIR"
