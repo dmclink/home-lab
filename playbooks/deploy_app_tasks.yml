@@ -1,8 +1,17 @@
-- name: Load app values
-  ansible.builtin.include_vars:
+- name: Load chart defaults
+  include_vars:
+    file: "{{ project_root }}/charts/common-service/values.yaml"
+    name: chart_defaults
+
+- name: Load app overrides
+  include_vars:
     file: "{{ values_file }}"
-    name: helm_vars
+    name: app_overrides
   failed_when: false
+
+- name: Merge overrides with helm defaults into helm_vars
+  set_fact:
+    helm_vars: "{{ chart_defaults | combine(app_overrides | default({}), recursive=True) }}"
 
 - name: Load app-specific secrets
   ansible.builtin.include_vars:
