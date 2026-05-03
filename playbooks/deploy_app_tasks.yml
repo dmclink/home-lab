@@ -41,14 +41,15 @@
       tls_verify: false
     when: build_result.changed
 
-- name: Postgres database management
-  when: helm_vars.postgres.enabled | default(false) | bool
-  block:
-  - name: Generate app database password
-    set_fact:
-      current_app_pass: "{{ vault_app_password | default(lookup('password', '/dev/null chars=ascii_letters,digits length=32 seed=' + app_name + vault_password_generation_seed)) }}"
+- name: Generate app database password
+  set_fact:
+    current_app_pass: "{{ vault_app_password | default(lookup('password', '/dev/null chars=ascii_letters,digits length=32 seed=' + app_name + vault_password_generation_seed)) }}"
     delegate_to: localhost
     delegate_facts: true
+
+- name: Postgres setup (Deploy)
+  when: (helm_vars.postgres.enabled | default(false) | bool) and not is_purge
+  block:
 
   - name: Ensure app database user exists
     community.postgresql.postgresql_user:
@@ -105,13 +106,6 @@
         controlNodeHost: "{{ control_node_host }}"
   delegate_to: localhost
 
-- name: Total Wipe (Purge) Namespace
-  kubernetes.core.k8s:
-    name: "{{ app_name }}"
-    kind: Namespace
-    state: absent
-  when: is_purge | bool
-
 # - name: Apply K8s Manifest
 #   kubernetes.core.k8s:
 #     state: "{{ workload_state }}"
@@ -122,6 +116,62 @@
 #   become: false
 #   environment:
 #     KUBECONFIG: "{{ lookup('env', 'HOME') }}/.kube/config"
+
+- name: Postgres teardown (Purge)
+  when: (helm_vars.postgres.enabled | bool) and (is_purge | bool)
+  run_once: true
+  block:
+  - name: Terminate active connections for the app user
+    community.postgresql.postgresql_query:
+      login_db: "postgres"
+      query: |
+        SELECT pg_terminate_backend(pid)
+        FROM pg_stat_activity
+        WHERE usename = '{{ app_name }}' AND pid <> pg_backend_pid();
+      login_user: "{{ db_super_user | default('postgres') }}"
+      login_password: "{{ vault_postgres_password }}"
+    delegate_to: "{{ groups['db_servers'][0] }}"
+
+  - name: Ensure application database removed
+    community.postgresql.postgresql_db:
+      name: "{{ helm_vars.db_name | default(app_name) }}"
+      owner: "{{ app_name }}"
+      state: absent
+      login_host: "{{ groups['db_servers'][0] }}"
+      login_user: "{{ db_super_user | default('postgres') }}"
+      login_password: "{{ vault_postgres_password }}"
+      port: "{{ db_node_port | int }}"
+    delegate_to: "{{ groups['db_servers'][0] }}"
+
+  - name: Clear all global dependencies for the app user
+    community.postgresql.postgresql_query:
+      login_db: "postgres"
+      query: 'DROP OWNED BY "{{ app_name }}" CASCADE;'
+      login_user: "{{ db_super_user | default('postgres') }}"
+      login_password: "{{ vault_postgres_password }}"
+      login_host: "{{ groups['db_servers'][0] }}"
+      port: "{{ db_node_port | int }}"
+    delegate_to: "{{ groups['db_servers'][0] }}"
+
+  - name: Ensure app database user absent
+    community.postgresql.postgresql_user:
+      name: "{{ app_name }}"
+      password: "{{ current_app_pass }}"
+      state: absent
+      login_host: "{{ groups['db_servers'][0] }}"
+      login_user: "{{ db_super_user | default('postgres') }}"
+      login_db: "{{ db_initial_name | default('postgres') }}"
+      login_password: "{{ vault_postgres_password }}"
+      port: "{{ db_node_port | int }}"
+    delegate_to: "{{ groups['db_servers'][0] }}"
+
+
+- name: Total Wipe (Purge) Namespace
+  kubernetes.core.k8s:
+    name: "{{ app_name }}"
+    kind: Namespace
+    state: absent
+  when: is_purge | bool
 
 - name: Prune old dangling images to save space
   containers.podman.podman_image:
