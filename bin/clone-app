@@ -1,0 +1,57 @@
+#!/bin/bash
+source "$(dirname "${BASH_SOURCE}")/_lib.sh"
+
+REPO_URL=$1
+shift
+
+if [ -z "$REPO_URL" ]; then
+    echo "Usage: app clone <repo-url>"
+    exit 1
+fi
+
+APP_NAME=$1
+
+if [ -z "${APP_NAME}" ]; then
+    echo "Cloning will generate a directory under app name. This corresponds with k3s names as well."
+    read -r -p "Enter app name, no spaces allowed: " input
+    APP_NAME="${input//[[:space:]]/}"
+fi
+
+if [ -z "$APP_NAME" ]; then
+    APP_NAME=$(basename "$REPO_URL" .git)
+fi
+
+echo "creating new app name: $APP_NAME"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+APPS_DIR="$PROJECT_ROOT/apps"
+SKELS_DIR="$PROJETC_ROOT/skeletons"
+
+echo "Select the project type for the app to clone"
+SKEL_DIR_NAME=$(prompt_for_skeleton)
+
+SKEL_DIR="${SKELS_DIR}/${SKEL_DIR_NAME}"
+
+TARGET_PATH="$APPS_DIR/$APP_NAME"
+if [[ -d "$TARGET_PATH" ]]; then
+    echo "Error: Directory $TARGET_PATH already exists."
+    exit 1
+fi
+
+if ! git clone "$REPO_URL" "$TARGET_PATH"; then
+    echo "Error: Failed to clone $REPO_URL"
+    exit 1
+fi
+
+echo "Copying over missing boilerplate config for app, build, and helm deployments from ${SKEL_DIR} directory"
+REQUIRED_FILES=(".gitignore" ".dockerignore" "Dockerfile" "vault.yml" "values.yaml")
+
+for file in "${REQUIRED_FILES[@]}"; do
+    if [[ -f "$SKEL_DIR/$file" ]]; then
+        cp -vn "$SKEL_DIR/$file" "$TARGET_PATH/"
+    fi
+done
+
+echo "Registering $APP_NAME as a submodule..."
+git -C "$PROJECT_ROOT" submodule add "./apps/$APP_NAME" "apps/$APP_NAME"
