@@ -55,7 +55,7 @@ case "$ACTION" in
             EXTRA_VARS="$EXTRA_VARS purge=true"
             echo "Purging app: $APP_NAME..."
         else
-            read -p "⚠️  Confirm removal of all local files for app: '$APP_NAME' (y/N): " confirm
+            read -p "⚠️  Confirm removal of all local files and deinit submodule for app: '$APP_NAME' (y/N): " confirm
             [[ "$confirm" != [yY] ]] && exit 1
             echo "Removing app: $APP_NAME..."
         fi
@@ -69,6 +69,7 @@ ansible-playbook "$PROJECT_ROOT/playbooks/deploy_app.yml" \
 # local cleanup
 if [[ $? -eq 0 && "$ACTION" == "remove" ]]; then
     echo "Fully removing $APP_NAME..."
+    git submodule deinit -f "apps/$APP_NAME" 2>/dev/null
     git rm -f "apps/$APP_NAME" 2>/dev/null
     rm -rf "apps/$APP_NAME"
     rm -rf ".git/modules/apps/$APP_NAME"
