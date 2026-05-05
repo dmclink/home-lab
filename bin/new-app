@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 APPS_DIR="$PROJECT_ROOT/apps"
-SKELETONS_DIR="$PROJECT_ROOT/skeletons"
+SKELS_DIR="$PROJECT_ROOT/skeletons"
 
 APP_NAME=$1
 shift
