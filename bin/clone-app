@@ -26,7 +26,7 @@ echo "creating new app name: $APP_NAME"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 APPS_DIR="$PROJECT_ROOT/apps"
-SKELS_DIR="$PROJETC_ROOT/skeletons"
+SKELS_DIR="$PROJECT_ROOT/skeletons"
 
 echo "Select the project type for the app to clone"
 SKEL_DIR_NAME=$(prompt_for_skeleton)
@@ -47,6 +47,7 @@ echo "Copying over missing boilerplate config for app, build, and helm deploymen
 REQUIRED_FILES=(".gitignore" ".dockerignore" "Dockerfile" "vault.yml" "values.yaml")
 
 for file in "${REQUIRED_FILES[@]}"; do
+    echo "$SKEL_DIR/$file"
     if [[ -f "$SKEL_DIR/$file" ]]; then
         cp -vn "$SKEL_DIR/$file" "$TARGET_PATH/"
     fi
