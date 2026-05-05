@@ -30,7 +30,6 @@ SKELS_DIR="$PROJETC_ROOT/skeletons"
 
 echo "Select the project type for the app to clone"
 SKEL_DIR_NAME=$(prompt_for_skeleton)
-
 SKEL_DIR="${SKELS_DIR}/${SKEL_DIR_NAME}"
 
 TARGET_PATH="$APPS_DIR/$APP_NAME"
