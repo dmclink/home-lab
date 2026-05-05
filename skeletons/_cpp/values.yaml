@@ -4,9 +4,15 @@ enabled: true
 
 # CONFIG
 # change to true if this app connects to db, will create database of db_name (defaults to app_name) automatically
-postgres:
-  enabled: true
+# postgres:
+  # enabled: false
   # uncomment these and overwrite the group_vars/all.yml settings for app specifics as necessary
   # host:
   # port:
   # db_name:
+ 
+# ingress:
+  # enabled: false
+  # host: "subdomain.mydomain.com"
+  # annotations: 
+  #   traefik.ingress.kubernetes.io/router.entrypoints: web

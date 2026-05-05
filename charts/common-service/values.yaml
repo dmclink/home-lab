@@ -1,4 +1,7 @@
+# these are loaded as app defaults. keep stuff `enabled: false` by default, override in app specific values.yaml
 replicaCount: 1
+
+enabled: true
 
 image:
   repository: ""
