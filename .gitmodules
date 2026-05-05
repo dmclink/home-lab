@@ -1,0 +1,3 @@
+[submodule "apps/hello-node"]
+	path = apps/hello-node
+	url = ./apps/hello-node
