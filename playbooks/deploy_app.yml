@@ -15,6 +15,13 @@
         msg: "Error: 'app_name' variable is missing. Run with: -e 'app_name=your_app'"
       when: app_name is undefined or app_name | length == 0
 
+    - name: Validate Postgres Secrets
+      ansible.builtin.fail:
+        msg: "Error: postgres.enabled is true but postgres.password is missing in vault."
+      when:
+        - postgres.enabled | default(false)
+        - postgres.password is undefined or postgres.password | length == 0
+
     - name: Set paths
       ansible.builtin.set_fact:
         app_dir: "{{ project_root }}/apps/{{ app_name }}"

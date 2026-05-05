@@ -16,3 +16,7 @@ enabled: true
   # host: "subdomain.mydomain.com"
   # annotations: 
   #   traefik.ingress.kubernetes.io/router.entrypoints: web
+
+env_vars:
+  # add non-sensitive environment variables injected into apps environment here
+  # NO SECRETS! go to vault.yaml for that

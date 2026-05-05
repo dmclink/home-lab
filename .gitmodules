@@ -1,3 +1,6 @@
 [submodule "apps/hello-node"]
 	path = apps/hello-node
 	url = ./apps/hello-node
+[submodule "apps/personal-blog-backend"]
+	path = apps/personal-blog-backend
+	url = ./apps/personal-blog-backend

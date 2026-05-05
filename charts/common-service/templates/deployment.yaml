@@ -13,6 +13,8 @@ spec:
       app: {{ .Release.Name }}
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
       labels:
         app: {{ .Release.Name }}
         managed-by: "ansible-homelab"
@@ -35,17 +37,15 @@ spec:
             value: {{ .Release.Name | quote }}
           - name: "POSTGRES_HOST"
             value: {{ .Values.postgres.host | quote }}
-          - name: {{ .Values.postgres.pass_key | quote }}
-            valueFrom:
-              secretKeyRef:
-                name: "{{ .Release.Name }}-secrets"
-                key: database-password
-          - name: DATABASE_URL
-            valueFrom:
-              secretKeyRef:
-                name: "{{ .Release.Name }}-secrets"
-                key: DATABASE_URL
           {{- end }}
+          # add non sensitive environment variables from values.yaml
+          {{- range $key, $val := .Values.env_vars }}
+          - name: {{ $key | quote }}
+            value: {{ $val | quote }}
+          {{- end }}
+        envFrom:
+          - secretRef:
+              name: "{{ .Release.Name }}-secrets"
 
       - name: health-sidecar
         image: alpine:latest

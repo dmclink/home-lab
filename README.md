@@ -26,7 +26,7 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s.
 ## Usage
 - Apps by default are passed the bootstrapped cluster database host address and port
   - can be overwritten by adding app specific overrides in the values.yaml and overwriting the postgres.host or postgres.port variables
-  - built string from postgres.host and postgres.port will be stored in environment variable DATABASE_URL
+  - built string from postgres.host and postgres.port will be stored in environment variable POSTGRES_URL
     - this is modifiable in the common-service Helm chart templates
   - by default the connection string will connec tto the database of the same name as the app unless postgres.db_name variable is set in the app's values.yaml
     - this is also modifiable in the common-service Helm chart templates

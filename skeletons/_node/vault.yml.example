@@ -1,2 +1,5 @@
 # overrides default behavior of generating database password from seed when set in vault
 vault_app_database_password: "super-secret-app-password"
+
+env_secrets:
+  # add secrets to be injected into apps environment here
