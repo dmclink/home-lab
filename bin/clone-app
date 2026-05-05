@@ -47,10 +47,6 @@ echo "Copying over missing boilerplate config for app, build, and helm deploymen
 REQUIRED_FILES=(".gitignore" ".dockerignore" "Dockerfile" "vault.yml" "values.yaml")
 
 for file in "${REQUIRED_FILES[@]}"; do
-<<<<<<< HEAD
-    echo "$SKEL_DIR/$file"
-=======
->>>>>>> 61b78880b9455ce23f36c7a83bcc58e005ee14b9
     if [[ -f "$SKEL_DIR/$file" ]]; then
         cp -vn "$SKEL_DIR/$file" "$TARGET_PATH/"
     fi
