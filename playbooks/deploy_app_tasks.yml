@@ -53,8 +53,8 @@
 - name: Generate app database password
   set_fact:
     current_app_pass: "{{ vault_app_database_password | default(lookup('password', '/dev/null chars=ascii_letters,digits length=32 seed=' + app_name + vault_password_generation_seed)) }}"
-    delegate_to: localhost
-    delegate_facts: true
+  delegate_to: localhost
+  delegate_facts: true
 
 - name: Postgres setup (Deploy)
   when: (helm_vars.postgres.enabled | default(false) | bool) and not is_purge
