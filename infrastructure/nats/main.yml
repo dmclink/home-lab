@@ -1,0 +1,61 @@
+- name: Dependencies
+  hosts: k3s_servers
+  become: true
+  vars_files:
+    - "{{ project_root }}/group_vars/all.yml"
+  tasks:
+    - name: Install Kuberenetes dependencies on nodes
+      ansible.builtin.package:
+        name:
+          - python3-kubernetes
+          - python3-yaml
+        state: present
+
+- name: Deploy NATS via Helm
+  hosts: localhost
+  connection: local
+  become: true
+  vars_files:
+    - "{{ project_root }}/group_vars/all.yml"
+  tasks:
+    - name: Add NATS Helm repository
+      kubernetes.core.helm_repository:
+        name: nats
+        repo_url: "https://nats-io.github.io/k8s/helm/charts/"
+
+    - name: Deploy NATS using official Helm chart
+      kubernetes.core.helm:
+        name: nats
+        chart_ref: nats/nats
+        release_namespace: nats
+        create_namespace: true
+        kubeconfig: "~/.kube/config"
+        values:
+          statefulSet:
+            nodeSelector: 
+              kubernetes.io/hostname: "{{ groups['nats_node'][0] }}"
+          service:
+            type: NodePort
+            port: 4222
+            nodePort: "{{ nats_node_port }}"
+          config:
+            cluster:
+              # change this to true if adding more nats nodes/replicas
+              enabled: false
+            jetstream:
+              enabled: true
+              fileStore:
+                pvc:
+                  enabled: true
+                  size: 5Gi
+                  storageClassName: local-path
+
+    - name: Deploy NACK (JetStream Controller)
+      kubernetes.core.helm:
+        name: nack
+        chart_ref: nats/nack
+        release_namespace: nats
+        kubeconfig: "~/.kube/config"
+        values:
+          jetstream:
+            natsServer: "nats://nats.nats.svc.cluster.local:4222"

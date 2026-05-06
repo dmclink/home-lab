@@ -38,6 +38,10 @@ all:
       hosts:
         host1:
 
+    nats_node:
+      hosts:
+        host1:
+
     # K3S ROLES
     k3s_servers:
       hosts:

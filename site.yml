@@ -14,6 +14,10 @@
   import_playbook: infrastructure/postgres/install.yml
   tags: [infra]
 
+- name: Install nats into K3 container
+  import_playbook: infrastructure/nats/main.yml
+  tags: [infra]
+
 - name: Deploy all custom apps
   tags: [apps]
   hosts: localhost

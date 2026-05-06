@@ -1,0 +1,11 @@
+{{- if .Values.nats.enabled }}
+apiVersion: jetstream.nats.io/v1beta1
+kind: Stream
+metadata:
+  name: {{ .Release.Name }}-stream
+spec:
+  name: {{ .Values.nats.streamName | default .Release.Name | upper }}
+  subjects: 
+    - "{{ .Values.nats.streamName | default .Release.Name }}.>"
+  storage: file
+{{- end }}
