@@ -8,3 +8,5 @@
 	ignore = untracked
 [submodule "/home/d/Data/Code/prod/home-lab/apps/blarg_son"]
 	ignore = untracked
+[submodule "/home/d/Data/Code/prod/home-lab/apps/foo_bar"]
+	ignore = untracked

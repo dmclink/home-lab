@@ -21,7 +21,7 @@
 - name: Set operational state
   ansible.builtin.set_fact:
     # Use helm_vars.enabled directly
-    workload_state: "{{ 'absent' if (purge | default(false) | bool or not helm_vars.enabled | default(true)) else 'present' }}"
+    workload_state: "{{ 'absent' if (app_state | default('present') == 'absent' or purge | default(false) | bool or not helm_vars.enabled | default(true)) else 'present' }}"
     is_purge: "{{ purge | default(false) | bool }}"
     db_state: "{{ 'absent' if (purge | default(false) | bool) else 'present' }}"
 
@@ -93,8 +93,20 @@
 #       kind: Namespace
 #       metadata:
 #         name: "{{ app_name }}"
+      
+- name: Check if Helm release exists
+  delegate_to: localhost
+  kubernetes.core.helm_info:
+    name: "{{ app_name }}"
+    release_namespace: "{{ app_name }}"
+  register: helm_info
+  failed_when: false
 
 - name: Deploy or teardown via Helm
+  when: >
+    workload_state == 'present' or 
+    (workload_state == 'absent' and helm_info.releases | default([]) | length > 0)
+  delegate_to: localhost
   kubernetes.core.helm:
     name: "{{ app_name }}"
     chart_ref: "{{ project_root }}/charts/common-service"
@@ -113,7 +125,6 @@
         password: "{{ current_app_pass }}"
       global:
         controlNodeHost: "{{ control_node_host }}"
-  delegate_to: localhost
 
 # - name: Apply K8s Manifest
 #   kubernetes.core.k8s:
