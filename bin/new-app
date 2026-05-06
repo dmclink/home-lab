@@ -17,7 +17,14 @@ if [ -z "$APP_NAME" ]; then
     exit 1
 fi
 
-if [ -d "$APPS_DIR/$APP_NAME" ]; then
+APP_NAME=$(sanitize_app_name "$APP_NAME")
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+
+APP_DIR="${APPS_DIR}/$APP_NAME"
+
+if [ -d "$APP_DIR" ]; then
     echo "An app by that name already exists. Exiting to avoid overwriting: $APP_NAME"
     exit 1
 fi
@@ -28,14 +35,12 @@ echo "Select the project type for the app to clone"
 SKEL_DIR_NAME=$(prompt_for_skeleton)
 SKEL_DIR="${SKELS_DIR}/${SKEL_DIR_NAME}"
 
-APP_DIR="${APPS_DIR}/$APP_NAME"
-
 mkdir -p $APP_DIR
 cp -r "$SKEL_DIR/." $APP_DIR
 
 cd $APP_DIR || exit 1
 
-cat <<EOF > "$APP_DIR/README.md"
+cat <<EOF >"$APP_DIR/README.md"
 # $APP_NAME
 
 ## Description
@@ -54,7 +59,7 @@ git commit -m "Initial commit from skeleton: $CHOICE"
 
 cd $PROJECT_ROOT
 echo "Registering $APP_NAME as a submodule..."
-git -C "$PROJECT_ROOT" submodule add "./apps/$APP_NAME" "apps/$APP_NAME"
-git config -f .gitmodules submodule."apps/$APP_NAME".ignore untracked
+git -C "$PROJECT_ROOT" submodule add "./$APP_DIR" "$APP_DIR"
+git config -f .gitmodules submodule."$APP_DIR".ignore untracked
 
 echo "Successfully initialized $APP_NAME"
