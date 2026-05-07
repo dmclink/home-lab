@@ -3,6 +3,7 @@
 declare -A SKELETON_MAP=(
     ["C++"]="_cpp"
     ["NodeJS"]="_node"
+    ["Go"]="_go"
 )
 
 prompt_for_skeleton() {

@@ -1,11 +1,3 @@
-[submodule "apps/hello-node"]
-	path = apps/hello-node
-	url = ./apps/hello-node
-	ignore = untracked
-[submodule "apps/personal-blog-backend"]
-	path = apps/personal-blog-backend
-	url = ./apps/personal-blog-backend
-	ignore = untracked
 [submodule "/home/d/Data/Code/prod/home-lab/apps/blarg_son"]
 	ignore = untracked
 [submodule "/home/d/Data/Code/prod/home-lab/apps/foo_bar"]
