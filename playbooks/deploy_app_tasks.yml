@@ -1,7 +1,7 @@
-- name: Load chart defaults
+- name: Load universal defaults
   include_vars:
-    file: "{{ project_root }}/charts/common-service/values.yaml"
-    name: chart_defaults
+    file: "{{ project_root }}/charts/values.yaml"
+    name: base_values
 
 - name: Load app overrides
   include_vars:
@@ -9,9 +9,21 @@
     name: app_overrides
   failed_when: false
 
-- name: Merge overrides with helm defaults into helm_vars
+# NOTE: make sure to add to this array whenever a new workload type is created
+- name: Validate workload type
+  assert:
+    that:
+      - app_overrides.workloadType | default('deployment') in ['deployment', 'cronjob', 'statefulset']
+    fail_msg: "Invalid workloadType '{{ app_overrides.workloadType }}' in apps/{{ app_name }}/values.yaml"
+
+- name: Load workload defaults
+  include_vars:
+    file: "{{ project_root }}/charts/{{ app_overrides.workloadType | default('deployment') }}/values.yaml"
+    name: workload_defaults
+
+- name: Merge app specific overrides with workload defaults and universal defaults into helm_vars
   set_fact:
-    helm_vars: "{{ chart_defaults | combine(app_overrides | default({}), recursive=True) }}"
+    helm_vars: "{{ base_values | combine(workload_defaults | default({}), recursive=True | combine(app_overrides | default({}), recursive=True) }}"
 
 - name: Load app-specific secrets
   ansible.builtin.include_vars:
@@ -109,7 +121,7 @@
   delegate_to: localhost
   kubernetes.core.helm:
     name: "{{ app_name }}"
-    chart_ref: "{{ project_root }}/charts/common-service"
+    chart_ref: "{{ project_root }}/charts/{{ app_overrides.workloadType | default('deployment') }}"
     release_namespace: "{{ app_name }}"
     create_namespace: true
     state: "{{ workload_state }}"

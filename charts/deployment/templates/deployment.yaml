@@ -5,7 +5,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     app: {{ .Release.Name }}
-    managed-by: "ansible-homelab"
+    app.kubernetes.io/managed-by: "ansible-homelab"
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/component: deployment
 spec:
   replicas: {{ .Values.replicaCount | default 1 }}
   selector:
@@ -17,7 +19,9 @@ spec:
         checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
       labels:
         app: {{ .Release.Name }}
-        managed-by: "ansible-homelab"
+        app.kubernetes.io/managed-by: "ansible-homelab"
+        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/component: deployment
     spec:
       containers:
       - name: main
@@ -38,6 +42,7 @@ spec:
           - name: "POSTGRES_HOST"
             value: {{ .Values.postgres.host | quote }}
           {{- end }}
+
           # add non sensitive environment variables from values.yaml
           {{- range $key, $val := .Values.env_vars }}
           - name: {{ $key | quote }}

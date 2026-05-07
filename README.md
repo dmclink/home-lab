@@ -21,7 +21,7 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s with a Helm default dep
 ### Configuration & Environment Variables
 Configuration is merged from multiple layers. If a key exists in multiple places, the higher number takes precedence:
 
-1. **Chart Defaults (charts/common-service/values.yaml)**:
+1. **Chart Defaults (charts/values.yaml)**:
   Global defaults for the cluster (ie. standard `POSTGRES_HOST`).
 2. **App Overrides Non-Sensitive Vars (`apps/<app>/values.yaml`)**:
    App specific settings. Add a block named `env_vars`. These are injected as plaintext in the Deployment.

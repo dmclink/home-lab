@@ -1,0 +1,10 @@
+apiVersion: v2
+name: deployment
+description: A generic template for long running deployment apps in my homelab
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+annotations:
+  managed-by: "ansible-homelab"
+  workload-type: "deployment"
