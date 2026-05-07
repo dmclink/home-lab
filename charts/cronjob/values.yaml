@@ -1,0 +1,12 @@
+workloadType: cronjob
+
+ingress:
+  enabled: false
+service:
+  enabled: false
+
+# consider making this broken date "0 0 31 2 *" to force user to set schedule in app specific values.yaml
+schedule: "0 * * * *"
+concurrencyPolicy: Forbid
+restartPolicy: OnFailure
+failedJobsHistoryLimit: 1

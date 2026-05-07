@@ -1,0 +1,12 @@
+apiVersion: v2
+name: cronjob
+description: A skeleton Helm chart for ephemeral, scheduled Go workloads
+type: application
+
+version: 0.1.0
+
+appVersion: "1.0.0"
+
+annotations:
+  managed-by: "ansible-homelab"
+  workload-type: "cronjob"

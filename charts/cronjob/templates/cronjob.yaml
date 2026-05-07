@@ -1,0 +1,46 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name | quote }}
+  labels:
+    app: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: "ansible-homelab"
+    app.kubernetes.io/name: {{ .Release.Name | quote }}
+    app.kubernetes.io/component: "cronjob"
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: {{ .Values.concurrencyPolicy | default "Forbid" | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: {{ .Release.Name | quote }}
+            app.kubernetes.io/managed-by: "ansible-homelab"
+            app.kubernetes.io/name: {{ .Release.Name | quote }}
+            app.kubernetes.io/component: "cronjob"
+        spec:
+          restartPolicy: {{ .Values.restartPolicy | default "OnFailure" | quote }}
+          containers:
+          - name: main
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            env:
+              - name: APP_NAME
+                value: {{ .Release.Name | quote }}
+              {{- if .Values.postgres.enabled }}
+              - name: {{ .Values.postgres.db_name_key | quote }}
+                value: {{ .Values.postgres.db_name | default .Release.Name | quote }}
+              - name: {{ .Values.postgres.user_key | quote }}
+                value: {{ .Release.Name | quote }}
+              - name: "POSTGRES_HOST"
+                value: {{ .Values.postgres.host | quote }}
+              {{- end }}
+
+              # add non sensitive environment variables from values.yaml
+              {{- range $key, $val := .Values.env_vars }}
+              - name: {{ $key | quote }}
+                value: {{ $val | quote }}
+              {{- end }}
+            envFrom:
+              - secretRef:
+                  name: "{{ .Release.Name }}-secrets"
