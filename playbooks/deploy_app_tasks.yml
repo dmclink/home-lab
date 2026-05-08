@@ -5,16 +5,20 @@
 
 - name: Load app overrides
   include_vars:
-    file: "{{ values_file }}"
+    file: "{{ values_file | default({}) }}"
     name: app_overrides
   failed_when: false
+
+- name: Temporarily merge app overrides with base values to extract workload type
+  set_fact:
+    workload_type: "{{ (base_values | combine(app_overrides | default({}), recursive=True)).workloadType }}"
 
 # NOTE: make sure to add to this array whenever a new workload type is created
 - name: Validate workload type
   assert:
     that:
-      - app_overrides.workloadType | default('deployment') in ['deployment', 'cronjob', 'statefulset']
-    fail_msg: "Invalid workloadType '{{ app_overrides.workloadType }}' in apps/{{ app_name }}/values.yaml"
+      - workload_type in ['deployment', 'cronjob', 'statefulset']
+    fail_msg: "Invalid workloadType '{{ workload_type }}' in apps/{{ app_name }}/values.yaml"
 
 - name: Load workload defaults
   include_vars:
@@ -23,7 +27,7 @@
 
 - name: Merge app specific overrides with workload defaults and universal defaults into helm_vars
   set_fact:
-    helm_vars: "{{ base_values | combine(workload_defaults | default({}), recursive=True | combine(app_overrides | default({}), recursive=True) }}"
+    helm_vars: "{{ base_values | combine(workload_defaults | default({}), recursive=True) | combine(app_overrides | default({}), recursive=True) }}"
 
 - name: Load app-specific secrets
   ansible.builtin.include_vars:
