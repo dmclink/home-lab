@@ -9,3 +9,6 @@
 	url = ./apps/hell_go_nats
 [submodule "/home/d/Data/Code/prod/home-lab/apps/hell_go_nats"]
 	ignore = untracked
+[submodule "apps/hello_go_nats"]
+	path = apps/hello_go_nats
+	url = ./apps/hello_go_nats
