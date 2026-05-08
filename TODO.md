@@ -16,6 +16,7 @@
     - allows us to reuse data structures etc. that are tightly coupled to the app
     - probably need a new values object like consumer.enabled=true consumer.systemd.enabled=true or similar to control whether it looks for consumer subdir and how it deploys on control node
 - separate consumers directory optional for generic consumers on control node not tied to any specific app, ie. logging + health
+- cronjob no way to set schedule manually?
 
 # Chores:
 - update README to include info on how to add new workload types, ie. add directory to charts and name matching files with chart subdir name and add to array in deploy_app_tasks

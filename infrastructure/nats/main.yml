@@ -35,9 +35,15 @@
             nodeSelector: 
               kubernetes.io/hostname: "{{ groups['nats_node'][0] }}"
           service:
-            type: NodePort
-            port: 4222
-            nodePort: "{{ nats_node_port }}"
+            enabled: true
+            merge:
+              spec:
+                type: NodePort
+                ports:
+                  - name: nats
+                    port: 4222
+                    targetPort: 4222
+                    nodePort: "{{ nats_node_port }}"
           config:
             cluster:
               # change this to true if adding more nats nodes/replicas

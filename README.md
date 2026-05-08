@@ -9,12 +9,17 @@ Homelab automation for PN50 MiniPC via Tailscale and K3s with a Helm default dep
 4. Create a vault password file at `~/.ansible/vault_pass.txt` and `chmod 600`. 
 5. Bootstrap cluster: `ansible-playbook site.yml -i inventory.yml -K`
 
+### Setup nats cli
+1. nats context add home-lab --server nats://<NATS_SERVER_IP>:<NODE_PORT> --select
+  - server IP should be your tailscale IP
+  - `nats_node_port` should be set in group_vars/all.yml
+2. nats context select home-lab
+
 ## Dependencies
-- fzf for deploy-app script (soft dependency)
-- yq for # Dependencies
-- **fzf**: For app selection menus.
-- **yq**: For YAML manipulation in deployment scripts.
-- **pnpm**: Required for Node.js skeleton builds.db-shell script (soft dependency)
+- fzf: For app selection menus in deployment scripts.
+- yq: For YAML manipulation in deployment scripts.
+- pnpm: Required for Node.js skeleton builds.db-shell script (OPTIONAL: if building any node apps)
+- nats cli: for monitoring nats `go install github.com/nats-io/natscli/nats@latest` (OPTIONAL: if using nats) 
 
 ## Usage
 
@@ -73,3 +78,4 @@ app remove --purge | N/A (Folder Deleted) | Deleted      | Deleted  | Deleted   
   - sends a POST request to control node's health endpoint.
 - Monitor pod resource usage with `kubectl top pods -A`
 - Monitor node resource usage with `kubectl top nodes`
+
