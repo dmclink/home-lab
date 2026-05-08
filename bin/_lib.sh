@@ -21,14 +21,16 @@ prompt_for_skeleton() {
     done
 }
 
-# replaces everything that isnt a letter or a number with an underscore
-# removes leading numbers and underscores for postgres
+# replaces everything that isnt a letter or a number with a hyphen
+# removes leading numbers Postgres
+# force kebab case for Helm
 # forces all lowercase
+# intent is to create one name that will work with all infra services (Postgres, Nats, Helm) for simplified searching
 sanitize_app_name() {
     local input="$1"
-    local sanitized=$(echo "$input" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/_/g' | sed 's/^[0-9_]*//')
+    local sanitized=$(echo "$input" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\{1,\}/-/g' | sed 's/^[^a-z]*//;s/-*$//')
     if [ -z "$sanitized" ]; then
-        echo "Error: App name must contain at least one letter." >&2
+        echo "Error: App name must contain at least one letter" >&2
         return 1
     fi
 
