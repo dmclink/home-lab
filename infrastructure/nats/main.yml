@@ -50,6 +50,12 @@
                   size: 5Gi
                   storageClassName: local-path
 
+    - name: Apply JetStream CRDs
+      kubernetes.core.k8s:
+        kubeconfig: "~/.kube/config"
+        state: present
+        src: https://github.com/nats-io/nack/releases/latest/download/crds.yml
+
     - name: Deploy NACK (JetStream Controller)
       kubernetes.core.helm:
         name: nack
@@ -58,4 +64,5 @@
         kubeconfig: "~/.kube/config"
         values:
           jetstream:
+            enabled: true
             natsServer: "nats://nats.nats.svc.cluster.local:4222"
