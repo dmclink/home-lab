@@ -65,4 +65,5 @@
         values:
           jetstream:
             enabled: true
-            natsServer: "nats://nats.nats.svc.cluster.local:4222"
+            nats:
+              url: "nats://nats.nats.svc.cluster.local:4222"
