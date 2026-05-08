@@ -16,6 +16,23 @@ done
 
 mapfile -t APPS < <(find "$APPS_DIR" -maxdepth 1 -mindepth 1 -type d -not -path '*/.*' -printf "%f\n")
 
+if [ $ACTION == "remove" ]; then
+    echo "looking for existing app name to remove"
+    FOUND=0
+    for app in "${APPS[@]}"; do
+        if [[ "$app" == $APP_NAME ]]; then
+            FOUND=1
+            break
+        fi
+    done
+
+    if [ $FOUND -eq 0 ]; then
+        echo "Not a valid app name, try again entering a name from this list"
+        echo $APPS
+        exit 1
+    fi
+fi
+
 if [ -z "$APP_NAME" ]; then
     if command -v fzf >/dev/null 2>&1; then
         APP_NAME=$(printf "%s\n" "${APPS[@]}" | fzf --height 40% --reverse --header "Select App for [$ACTION]:")
@@ -35,32 +52,32 @@ CONFIG_FILE="$APP_DIR/values.yaml"
 EXTRA_VARS="app_name=$APP_NAME project_root=$PROJECT_ROOT"
 
 case "$ACTION" in
-    deploy)
-        echo "Deploying app: $APP_NAME..."
-        if [ -f "$CONFIG_FILE" ]; then
-            yq -i '.enabled = true' "$CONFIG_FILE"
-        fi
-        ;;
-    disable)
-        echo "Disabling app: $APP_NAME..."
-        touch "$CONFIG_FILE"
-        yq -i '.enabled = false' "$CONFIG_FILE"
-        git add "$CONFIG_FILE"
-        ;;
-    remove)
-        EXTRA_VARS="$EXTRA_VARS app_state=absent"
-        if [ "$IS_PURGE" = true ]; then
-            echo "⚠️  Confirm PURGE of all data for app: '$APP_NAME'"
-            read -p "WARNING: includes local files and cluster database data! (y/N): " confirm
-            [[ "$confirm" != [yY] ]] && exit 1
-            EXTRA_VARS="$EXTRA_VARS purge=true"
-            echo "Purging app: $APP_NAME..."
-        else
-            read -p "⚠️  Confirm removal of all local files and deinit submodule for app: '$APP_NAME' (y/N): " confirm
-            [[ "$confirm" != [yY] ]] && exit 1
-            echo "Removing app: $APP_NAME..."
-        fi
-        ;;
+deploy)
+    echo "Deploying app: $APP_NAME..."
+    if [ -f "$CONFIG_FILE" ]; then
+        yq -i '.enabled = true' "$CONFIG_FILE"
+    fi
+    ;;
+disable)
+    echo "Disabling app: $APP_NAME..."
+    touch "$CONFIG_FILE"
+    yq -i '.enabled = false' "$CONFIG_FILE"
+    git add "$CONFIG_FILE"
+    ;;
+remove)
+    EXTRA_VARS="$EXTRA_VARS app_state=absent"
+    if [ "$IS_PURGE" = true ]; then
+        echo "⚠️  Confirm PURGE of all data for app: '$APP_NAME'"
+        read -p "WARNING: includes local files and cluster database data! (y/N): " confirm
+        [[ "$confirm" != [yY] ]] && exit 1
+        EXTRA_VARS="$EXTRA_VARS purge=true"
+        echo "Purging app: $APP_NAME..."
+    else
+        read -p "⚠️  Confirm removal of all local files and deinit submodule for app: '$APP_NAME' (y/N): " confirm
+        [[ "$confirm" != [yY] ]] && exit 1
+        echo "Removing app: $APP_NAME..."
+    fi
+    ;;
 esac
 
 ansible-playbook "$PROJECT_ROOT/playbooks/deploy_app.yml" \
