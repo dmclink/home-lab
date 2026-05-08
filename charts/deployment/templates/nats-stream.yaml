@@ -11,6 +11,7 @@ metadata:
 spec:
   name: {{ .Values.nats.streamName | default .Release.Name }}
   subjects: 
+    - "{{ .Values.nats.streamName | default .Release.Name }}"
     - "{{ .Values.nats.streamName | default .Release.Name }}.>"
   storage: file
 {{- end }}
