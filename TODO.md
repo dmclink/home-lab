@@ -19,3 +19,5 @@
 
 # Chores:
 - update README to include info on how to add new workload types, ie. add directory to charts and name matching files with chart subdir name and add to array in deploy_app_tasks
+- add infra namespaces and service names ie. postgres and nats to group_vars/all.yml to they can be configured 
+    - lets them be defined in one place and env vars like NATS_URL can be built instead of repeated in every workloadType template

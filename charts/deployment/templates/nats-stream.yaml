@@ -3,8 +3,13 @@ apiVersion: jetstream.nats.io/v1beta1
 kind: Stream
 metadata:
   name: {{ .Release.Name }}-stream
+  labels:
+    app: {{ .Release.Name | quote }}
+    app.kubernetes.io/managed-by: "ansible-homelab"
+    app.kubernetes.io/name: {{ .Release.Name | quote }}
+    app.kubernetes.io/component: "cronjob"
 spec:
-  name: {{ .Values.nats.streamName | default .Release.Name | upper }}
+  name: {{ .Values.nats.streamName | default .Release.Name }}
   subjects: 
     - "{{ .Values.nats.streamName | default .Release.Name }}.>"
   storage: file

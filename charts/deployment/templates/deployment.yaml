@@ -43,6 +43,13 @@ spec:
             value: {{ .Values.postgres.host | quote }}
           {{- end }}
 
+          {{- if .Values.nats.enabled }}
+          - name: "NATS_STREAM_NAME"
+            value: {{ .Values.nats.streamName | default .Release.Name | quote }}
+          - name: "NATS_URL"
+            value: "nats://nats.nats.svc.cluster.local:4222"
+          {{- end }}
+
           # add non sensitive environment variables from values.yaml
           {{- range $key, $val := .Values.env_vars }}
           - name: {{ $key | quote }}
