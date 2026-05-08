@@ -40,7 +40,9 @@ cp -r "$SKEL_DIR/." $APP_DIR
 
 cd $APP_DIR || exit 1
 
-cat <<EOF >"$APP_DIR/README.md"
+git init
+
+cat <<EOF >"README.md"
 # $APP_NAME
 
 ## Description
@@ -53,13 +55,12 @@ TODO: List dependencies
 TODO: Describe how to use app
 EOF
 
-git init
 git add .
-git commit -m "Initial commit from skeleton: $CHOICE"
+git commit -m "Initial commit from skeleton: $SKEL_DIR_NAME"
 
 cd $PROJECT_ROOT
 echo "Registering $APP_NAME as a submodule..."
-git -C "$PROJECT_ROOT" submodule add "./$APP_DIR" "$APP_DIR"
+git -C "$PROJECT_ROOT" submodule add "./apps/$APP_NAME" "apps/$APP_NAME"
 git config -f .gitmodules submodule."$APP_DIR".ignore untracked
 
 echo "Successfully initialized $APP_NAME"
