@@ -2,3 +2,10 @@
 	ignore = untracked
 [submodule "/home/d/Data/Code/prod/home-lab/apps/foo_bar"]
 	ignore = untracked
+[submodule "/home/d/Data/Code/prod/home-lab/apps/hello_go_nats"]
+	ignore = untracked
+[submodule "apps/hell_go_nats"]
+	path = apps/hell_go_nats
+	url = ./apps/hell_go_nats
+[submodule "/home/d/Data/Code/prod/home-lab/apps/hell_go_nats"]
+	ignore = untracked

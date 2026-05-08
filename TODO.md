@@ -6,6 +6,9 @@
 - prune command to podman image prune on laptop and registry
 - app enable that doesn't deploy?
 - app deploy -a --all flag?
+- `app nats list` `app nats view` as shortcuts for these long comands 
+    - ie. `kubectl exec -n nats -it deployment/nats-box -- nats stream ....` `list` `view` `info STREAM_NAME` `get STREAM_NAME`
+- `app remove` doesn't have auto complete names
 
 # Features:
 - change the build/deploy process for apps to allow for consumers written in app's directory
