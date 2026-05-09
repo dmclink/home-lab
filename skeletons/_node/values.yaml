@@ -22,6 +22,10 @@ enabled: true
 #   enabled: false
 #   streamName:
 
+# only available for workloadType: cronjob
+# cron:
+#   schedule:
+
 env_vars:
   # add non-sensitive environment variables injected into apps environment here
   # NO SECRETS! go to vault.yaml for that

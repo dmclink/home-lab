@@ -8,8 +8,8 @@ metadata:
     app.kubernetes.io/name: {{ .Release.Name | quote }}
     app.kubernetes.io/component: "cronjob"
 spec:
-  schedule: {{ .Values.schedule | quote }}
-  concurrencyPolicy: {{ .Values.concurrencyPolicy | default "Forbid" | quote }}
+  schedule: {{ .Values.cron.schedule | quote }}
+  concurrencyPolicy: {{ .Values.cron.concurrencyPolicy | default "Forbid" | quote }}
   jobTemplate:
     spec:
       template:
@@ -20,7 +20,7 @@ spec:
             app.kubernetes.io/name: {{ .Release.Name | quote }}
             app.kubernetes.io/component: "cronjob"
         spec:
-          restartPolicy: {{ .Values.restartPolicy | default "OnFailure" | quote }}
+          restartPolicy: {{ .Values.cron.restartPolicy | default "OnFailure" | quote }}
           containers:
           - name: main
             image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
