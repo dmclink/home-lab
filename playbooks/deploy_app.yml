@@ -27,6 +27,7 @@
         app_dir: "{{ project_root }}/apps/{{ app_name }}"
         chart_dir: "{{ project_root }}/charts/common-service"
         values_file: "{{ project_root }}/apps/{{ app_name }}/values.yaml"
+        tasks_dir: "{{ project_root }}/playbooks/tasks"
 
     - name: Verify app directory exists
       ansible.builtin.stat:
@@ -38,6 +39,7 @@
         msg: "Error: App folder '{{ app_dir }}' not found."
       when: not check_dir.stat.exists or not check_dir.stat.isdir
 
+
 - name: Deploy app
   hosts: localhost
   connection: local
@@ -46,4 +48,4 @@
     - "{{ project_root }}/vault.yml"
   tasks:
     - name: Run deployment
-      ansible.builtin.include_tasks: deploy_app_tasks.yml
+      ansible.builtin.include_tasks: "{{ tasks_dir }}/deploy_app_tasks.yml"

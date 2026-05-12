@@ -1,0 +1,12 @@
+- name: Total Wipe (Purge) Namespace
+  kubernetes.core.k8s:
+    name: "{{ app_name }}"
+    kind: Namespace
+    state: absent
+  when: is_purge | bool
+
+- name: Prune dangling images
+  containers.podman.podman_prune:
+    container: true
+    image: true
+    system_all: false

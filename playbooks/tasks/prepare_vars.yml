@@ -1,0 +1,105 @@
+- name: Load universal defaults
+  ansible.builtin.include_vars:
+    file: "{{ project_root }}/charts/values.yaml"
+    name: base_values
+
+- name: Load app overrides
+  ansible.builtin.include_vars:
+    file: "{{ values_file | default({}) }}"
+    name: app_overrides
+  failed_when: false
+
+- name: Load app-specific secrets
+  ansible.builtin.include_vars:
+    file: "{{ app_dir }}/vault.yml"
+  failed_when: false
+
+- name: Get current git commit hash
+  ansible.builtin.command: git rev-parse --short HEAD
+  args:
+    chdir: "{{ app_dir }}"
+  register: retrieved_app_hash
+  changed_when: false
+
+- name: Set app_hash
+  ansible.builtin.set_fact:
+    app_hash: "{{ retrieved_app_hash.stdout }}"
+
+- name: Set global operational facts
+  ansible.builtin.set_fact:
+    workload_state: >-
+      {%- if (app_state | default('present') == 'absent') or
+             (purge | default(false) | bool) or
+             (app_overrides.enabled is defined and not app_overrides.enabled | bool) -%}
+        absent
+      {%- else -%}
+        present
+      {%- endif -%}
+    is_purge: "{{ purge | default(false) | bool }}"
+    db_state: "{{ 'absent' if (purge | default(false) | bool) else 'present' }}"
+
+- name: Normalize components list
+  ansible.builtin.set_fact:
+    raw_components: "{{ app_overrides.components if app_overrides.components is defined else [app_overrides | combine({'name': app_name})] }}"
+    app_global_values: "{{ app_overrides | dict2items | rejectattr('key', 'equalto', 'components') | list | items2dict }}"
+
+# NOTE: make sure to add to this array whenever a new workload type is created
+- name: Load all workload defaults into memory
+  ansible.builtin.include_vars:
+    file: "{{ project_root }}/charts/{{ item }}/values.yaml"
+    name: "workload_defaults_{{ item }}"
+  loop: ['deployment', 'cronjob'] # 'statefulset' ?
+
+- name: Initialize final components list
+  ansible.builtin.set_fact:
+    final_components: []
+
+- name: Generate app database password
+  ansible.builtin.set_fact:
+    current_app_pass: >
+      "{{ vault_app_database_password
+      | default(lookup('password', '/dev/null chars=ascii_letters,digits length=32 seed=' + app_name + vault_password_generation_seed)) }}"
+  delegate_to: localhost
+  delegate_facts: true
+
+- name: Process and layer component values
+  ansible.builtin.set_fact:
+    final_components: "{{ final_components + [merged_item] }}"
+  loop: "{{ raw_components }}"
+  vars:
+    workload_type: "{{ item.workloadType | default(app_global_values.workloadType) | default('deployment') }}"
+    workload_vars: "{{ lookup('ansible.builtin.vars', 'workload_defaults_' + workload_type, default={}) }}"
+    ansible_runtime_injections:
+      name: "{{ item.name | default(app_name) }}"
+      component_state: >-
+        {%- if (workload_state == 'absent') or (item.enabled == false) -%}
+          absent
+        {%- else -%}
+          present
+        {%- endif -%}
+      image:
+        repository: "{{ registry_ip }}:{{ registry_port }}/{{ item.name }}"
+        tag: "{{ app_hash }}"
+      postgres:
+        password: "{{ current_app_pass }}"
+      global:
+        controlNodeHost: "{{ control_node_host }}"
+    merged_item: >-
+      {{
+        base_values
+
+        | combine(workload_vars, recursive=True)
+        | combine(ansible_runtime_injections, recursive=True)
+        | combine(app_global_values, recursive=True)
+        | combine(item, recursive=True)
+      }}
+
+
+- name: Debug - App configuration summary
+  ansible.builtin.debug:
+    msg:
+      app_name: "{{ app_name }}"
+      workload_state: "{{ workload_state }}"
+      app_hash: "{{ app_hash }}"
+      component_count: "{{ final_components | length }}"
+      components: "{{ final_components }}"

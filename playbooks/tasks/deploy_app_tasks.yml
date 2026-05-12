@@ -1,0 +1,22 @@
+# layers values files and generates final_components 
+- name: Prepare configuration data and merge variables
+  ansible.builtin.include_tasks: "{{ project_root }}/playbooks/tasks/prepare_vars.yml"
+
+- name: Build components' images and push to registry
+  ansible.builtin.include_tasks: "{{ project_root }}/playbooks/tasks/build_image.yml"
+  when: workload_state == 'present'
+
+- name: Setup postgres
+  ansible.builtin.include_tasks: "{{ tasks_dir }}/deploy_app_postgres.yml"
+
+- name: Deploy
+  ansible.builtin.include_tasks: "{{ tasks_dir }}/helm_deploy.yml"
+  loop: "{{ final_components }}"
+
+- name: Teardown Postgres (purge)
+  when: (needs_db | bool) and (is_purge | bool)
+  ansible.builtin.include_tasks: "{{ tasks_dir }}/teardown_postgres.yml"
+  run_once: true
+
+- name: Cleanup
+  ansible.builtin.include_tasks: "{{ tasks_dir }}/cleanup.yml"

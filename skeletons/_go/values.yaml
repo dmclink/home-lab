@@ -1,6 +1,12 @@
-# STATE
+# DESIRED STATE
 # when set to false, results in app being removed from k3s cluster
 enabled: true
+
+# components:
+#   - name:
+#     workloadType:
+#     target: local
+
 # workloadType: deployment
 
 # CONFIG

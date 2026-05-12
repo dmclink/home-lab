@@ -1,0 +1,17 @@
+- name: Build image with Podman
+  containers.podman.podman_image:
+    name: "{{ registry_ip }}:{{ registry_port }}/{{ app_name }}"
+    tag: "{{ app_hash }}"
+    path: "{{ project_root }}/apps/{{ app_name }}"
+    build:
+      extra_args: "--tls-verify=false --build-arg app_name={{ app_name }}"
+    state: build
+  register: build_result
+
+- name: Push to local registry
+  containers.podman.podman_image:
+    name: "{{ registry_ip }}:{{ registry_port }}/{{ app_name }}"
+    tag: "{{ app_hash }}"
+    push: true
+    tls_verify: false
+  when: build_result.changed

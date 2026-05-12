@@ -43,4 +43,4 @@ nats:
   enabled: false
   streamName:
 
-env_vars:
+env_vars: []
