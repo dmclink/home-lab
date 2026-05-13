@@ -1,8 +1,11 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
 echo "Opening tunnel to K3s Postgres..."
 # using 5433 in case we already run a psql dev container on control node at 5432
-kubectl port-forward -n database svc/postgres-service 5433:5432 > /dev/null 2>&1 &
+kubectl port-forward -n database svc/postgres-service 5433:5432 >/dev/null 2>&1 &
 
 TUNNEL_PID=$!
 
@@ -12,15 +15,14 @@ trap "kill $TUNNEL_PID 2>/dev/null" EXIT
 TIMEOUT=5
 start_time=$(date +%s)
 
-until pg_isready -h 127.0.0.1 -p 5433 > /dev/null 2>&1; do
+until pg_isready -h 127.0.0.1 -p 5433 >/dev/null 2>&1; do
     sleep 0.1
 done
 
-DB_SUPER_USER=$(yq '.db_super_user' group_vars/all.yml)
-DB_INITIAL_NAME=$(yq '.db_initial_name' group_vars/all.yml)
+DB_SUPER_USER=$(yq '.db_super_user' ${PROJECT_ROOT}/group_vars/all.yml)
+DB_INITIAL_NAME=$(yq '.db_initial_name' ${PROJECT_ROOT}/group_vars/all.yml)
 
 DB_NAME="${1:-$DB_INITIAL_NAME}"
-
 
 psql -h 127.0.0.1 -p 5433 -U $DB_SUPER_USER -d $DB_NAME
 
