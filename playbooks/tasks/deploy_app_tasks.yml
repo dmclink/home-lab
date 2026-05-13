@@ -1,4 +1,4 @@
-# layers values files and generates final_components 
+# layers values files and generates final_components
 - name: Prepare configuration data and merge variables
   ansible.builtin.include_tasks: "{{ project_root }}/playbooks/tasks/prepare_vars.yml"
 
@@ -6,8 +6,26 @@
   ansible.builtin.include_tasks: "{{ project_root }}/playbooks/tasks/build_image.yml"
   when: workload_state == 'present'
 
-- name: Setup postgres
+- name: Ensure baseline application namespace exists
+  delegate_to: localhost
+  when: workload_state == 'present'
+  run_once: true
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ app_name }}"
+        labels:
+          app: "{{ app_name }}"
+          app.kubernetes.io/managed-by: "ansible-homelab"
+
+- name: Setup Postgres
   ansible.builtin.include_tasks: "{{ tasks_dir }}/deploy_app_postgres.yml"
+
+- name: Setup NATS
+  ansible.builtin.include_tasks: "{{ tasks_dir }}/deploy_app_nats.yml"
 
 - name: Deploy
   ansible.builtin.include_tasks: "{{ tasks_dir }}/helm_deploy.yml"

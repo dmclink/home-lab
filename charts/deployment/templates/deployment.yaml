@@ -4,7 +4,8 @@ metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
   labels:
-    app: {{ .Release.Name }}
+    app: {{ .Values.appName }}
+    name: {{ .Values.name }}
     app.kubernetes.io/managed-by: "ansible-homelab"
     app.kubernetes.io/name: {{ .Release.Name }}
     app.kubernetes.io/component: deployment
@@ -12,13 +13,14 @@ spec:
   replicas: {{ .Values.replicaCount | default 1 }}
   selector:
     matchLabels:
-      app: {{ .Release.Name }}
+      app: {{ .Release.Namespace }}
   template:
     metadata:
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
       labels:
-        app: {{ .Release.Name }}
+        app: {{ .Values.appName }}
+        name: {{ .Values.name }}
         app.kubernetes.io/managed-by: "ansible-homelab"
         app.kubernetes.io/name: {{ .Release.Name }}
         app.kubernetes.io/component: deployment
@@ -29,7 +31,10 @@ spec:
         command: {{ .Values.command | toJson }}
         {{- end }}
         {{- if .Values.args }}
-        args: {{ .Values.args | toJson }}
+        args:
+          {{- range .Values.args }}
+          - {{ . | quote }}
+          {{- end }}
         {{- end }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy | default "Always" }}
@@ -39,7 +44,7 @@ spec:
             protocol: TCP
         env:
           - name: APP_NAME
-            value: {{ .Release.Name }}
+            value: {{ .Values.appName | default .Release.Namespace | quote }}
           {{- if .Values.postgres.enabled }}
           - name: {{ .Values.postgres.db_name_key | quote }}
             value: {{ .Values.postgres.db_name | default .Release.Name | quote }}
@@ -47,13 +52,6 @@ spec:
             value: {{ .Release.Name | quote }}
           - name: "POSTGRES_HOST"
             value: {{ .Values.postgres.host | quote }}
-          {{- end }}
-
-          {{- if .Values.nats.enabled }}
-          - name: "NATS_STREAM_NAME"
-            value: {{ .Values.nats.streamName | default .Release.Name | quote }}
-          - name: "NATS_URL"
-            value: "nats://nats.nats.svc.cluster.local:4222"
           {{- end }}
 
           # add non sensitive environment variables from values.yaml
@@ -64,6 +62,10 @@ spec:
         envFrom:
           - secretRef:
               name: "{{ .Release.Name }}-secrets"
+          {{- if .Values.nats.enabled }}
+          - configMapRef:
+              name: {{ .Values.appName }}-shared-config
+          {{- end }}
 
       - name: health-sidecar
         image: alpine:latest

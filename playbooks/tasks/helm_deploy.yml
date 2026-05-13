@@ -1,8 +1,8 @@
 - name: Check if Helm release exists
   delegate_to: localhost
   kubernetes.core.helm_info:
-    name: "{{ item.name }}"
-    release_namespace: "{{ item.name }}"
+    name: "{{ app_name }}-{{ item.name }}"
+    release_namespace: "{{ app_name }}"
   register: helm_info
   failed_when: false
 
@@ -12,9 +12,8 @@
     (workload_state == 'absent' and helm_info.releases | default([]) | length > 0)
   delegate_to: localhost
   kubernetes.core.helm:
-    name: "{{ item.name }}"
+    name: "{{ app_name }}-{{ item.name }}"
     chart_ref: "{{ project_root }}/charts/{{ item.workloadType | default('deployment') }}"
-    release_namespace: "{{ item.name }}"
-    create_namespace: true
+    release_namespace: "{{ app_name }}"
     state: "{{ workload_state }}"
     values: "{{ item }}"

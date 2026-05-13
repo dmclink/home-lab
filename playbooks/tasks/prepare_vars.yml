@@ -70,6 +70,7 @@
     workload_type: "{{ item.workloadType | default(app_global_values.workloadType) | default('deployment') }}"
     workload_vars: "{{ lookup('ansible.builtin.vars', 'workload_defaults_' + workload_type, default={}) }}"
     ansible_runtime_injections:
+      appName: "{{ app_name }}"
       name: "{{ item.name | default(app_name) }}"
       component_state: >-
         {%- if (workload_state == 'absent') or (item.enabled == false) -%}
@@ -78,7 +79,7 @@
           present
         {%- endif -%}
       image:
-        repository: "{{ registry_ip }}:{{ registry_port }}/{{ item.name }}"
+        repository: "{{ registry_ip }}:{{ registry_port }}/{{ app_name }}"
         tag: "{{ app_hash }}"
       postgres:
         password: "{{ current_app_pass }}"

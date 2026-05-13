@@ -10,4 +10,5 @@ cron:
   schedule: "0 * * * *"
   concurrencyPolicy: Forbid
   restartPolicy: OnFailure
-  failedJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  successfulJobHistoryLimit: 1
