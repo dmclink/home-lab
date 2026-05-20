@@ -1,0 +1,80 @@
+- name: Set local Quadlet facts
+  ansible.builtin.set_fact:
+    quadlet_dir: "{{ ansible_env.HOME }}/.config/containers/systemd"
+    service_name: "{{ app_name }}-{{ item.name }}"
+    xdg_runtime_dir: "/run/user/{{ ansible_effective_user_id }}"
+
+- name: Set service path
+  ansible.builtin.set_fact:
+    service_path: "{{ quadlet_dir }}/{{ service_name }}.container"
+
+- name: Handle Quadlet Deployment (Present)
+  when: workload_state == 'present'
+  block:
+    - name: Ensure Quadlet directory exists
+      ansible.builtin.file:
+        path: "{{ quadlet_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Generate Quadlet file from template
+      ansible.builtin.template:
+        src: "{{ project_root }}/playbooks/templates/quadlet.container.j2"
+        dest: "{{ service_path }}"
+        mode: '0644'
+      register: quadlet_generated
+
+    # - name: Enable lingering for user
+    #   ansible.builtin.command:
+    #     cmd: "loginctl enable-linger {{ ansible_effective_user_id }}"
+    #   creates: "/var/lib/systemd/linger/{{ ansible_effective_user }}"
+
+    - name: Force systemd rescan
+      when: quadlet_generated.changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "{{ xdg_runtime_dir }}"
+
+    - name: Ensure Quadlet service is enabled and started
+      ansible.builtin.systemd_service:
+        name: "{{ service_name }}"
+        state: restarted
+        enabled: true
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "{{ xdg_runtime_dir }}"
+
+- name: Handle Quadlet Teardown (Absent)
+  when: workload_state == 'absent'
+  block:
+    - name: Check if Quadlet file exists
+      ansible.builtin.stat:
+        path: "{{ service_path }}"
+      register: quadlet_file
+
+    - name: Stop and disable Quadlet service
+      when: quadlet_file.stat.exists
+      ansible.builtin.systemd_service:
+        name: "{{ service_name }}"
+        state: stopped
+        enabled: false
+        scope: user
+      failed_when: false
+      environment:
+        XDG_RUNTIME_DIR: "{{ xdg_runtime_dir }}"
+
+    - name: Remove Quadlet file
+      ansible.builtin.file:
+        path: "{{ service_path }}"
+        state: absent
+      register: quadlet_removed
+
+    - name: Force systemd rescan after removal
+      when: quadlet_removed.changed
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+        scope: user
+      environment:
+        XDG_RUNTIME_DIR: "{{ xdg_runtime_dir }}"

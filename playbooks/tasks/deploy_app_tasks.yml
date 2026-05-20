@@ -7,7 +7,6 @@
   when: workload_state == 'present'
 
 - name: Ensure baseline application namespace exists
-  delegate_to: localhost
   when: workload_state == 'present'
   run_once: true
   kubernetes.core.k8s:
@@ -27,9 +26,9 @@
 - name: Setup NATS
   ansible.builtin.include_tasks: "{{ tasks_dir }}/deploy_app_nats.yml"
 
-- name: Deploy
-  ansible.builtin.include_tasks: "{{ tasks_dir }}/helm_deploy.yml"
+- name: Process deployments based on target
   loop: "{{ final_components }}"
+  ansible.builtin.include_tasks: "{{ tasks_dir }}/choose_deployment.yml"
 
 - name: Teardown Postgres (purge)
   when: (needs_db | bool) and (is_purge | bool)

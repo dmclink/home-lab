@@ -1,0 +1,25 @@
+[Unit]
+Description=Local consumer for {{ app_name }}-{{ item.name }}
+After=network-online.target
+
+[Container]
+Image={{ item.image.repository }}:{{ item.image.tag }}
+
+{% if item.args is defined and item.args %}
+Exec={{ item.args | join(' ') }}
+{% endif %}
+
+{% if item.env_vars is defined %}
+{% for key, value in item.env_vars.items() %}
+Environment={{ key }}={{ value }}
+{% endfor %}
+{% endif %}
+
+# not the same as NATS_URL set in tasks since quadlets aren't on the k3s cluster
+Environment=NATS_URL=nats://{{ item.nats_ip | default(nats_ip) }}:{{ item.nats_node_port | default(nats_node_port) }}
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

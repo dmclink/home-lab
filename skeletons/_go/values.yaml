@@ -32,6 +32,6 @@ enabled: true
 # cron:
 #   schedule:
 
-env_vars:
+# env_vars:
   # add non-sensitive environment variables injected into apps environment here
   # NO SECRETS! go to vault.yaml for that

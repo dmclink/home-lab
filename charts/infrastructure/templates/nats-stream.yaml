@@ -14,4 +14,8 @@ spec:
     - "{{ .Values.nats.streamName | default .Release.Namespace }}"
     - "{{ .Values.nats.streamName | default .Release.Namespace }}.>"
   storage: file
+  retention: {{ .Values.nats.retention | default "limits" }}
+  maxMsgs: {{ .Values.nats.maxMsgs | default -1 }}
+  maxAge: {{ .Values.nats.maxAge | default "0s" }}
+  maxBytes: {{ .Values.nats.maxBytes | default -1 }}
 {{- end }}

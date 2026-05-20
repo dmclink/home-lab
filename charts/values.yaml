@@ -44,5 +44,9 @@ resources:
 nats:
   enabled: false
   streamName:
+  retention: "limits" # limits|interest|workqueue
+  maxAge: "7d"
+  maxMsgs: 10000
+  maxBytes: 100000
 
-env_vars: []
+# env_vars:

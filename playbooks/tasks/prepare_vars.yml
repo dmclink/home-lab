@@ -69,6 +69,24 @@
   vars:
     workload_type: "{{ item.workloadType | default(app_global_values.workloadType) | default('deployment') }}"
     workload_vars: "{{ lookup('ansible.builtin.vars', 'workload_defaults_' + workload_type, default={}) }}"
+    calculated_nats_url: >-
+      {%- if item.target | default('k3s') == 'local' -%}
+        nats://{{ nats_ip }}:{{ nats_node_port }}
+      {%- else -%}
+        nats://nats.nats.svc.cluster.local:{{ nats_port }}
+      {%- endif -%}
+    nats_runtime_env: >-
+      {%- if app_overrides.nats.enabled | default(false) | bool -%}
+        {%- set stream_name = (app_overrides.nats.streamName | default(app_name)) ~ '-stream' -%}
+        {%- set subject_prefix = app_overrides.nats.subjectPrefix | default(app_name) -%}
+        {
+          "NATS_STREAM_NAME": "{{ stream_name }}",
+          "NATS_SUBJECT_PREFIX": "{{ subject_prefix }}",
+          "NATS_URL": "{{ calculated_nats_url | trim }}"
+        }
+      {%- else -%}
+        {}
+      {%- endif -%}
     ansible_runtime_injections:
       appName: "{{ app_name }}"
       name: "{{ item.name | default(app_name) }}"
@@ -85,6 +103,7 @@
         password: "{{ current_app_pass }}"
       global:
         controlNodeHost: "{{ control_node_host }}"
+      env_vars: "{{ nats_runtime_env | from_yaml }}"
     merged_item: >-
       {{
         base_values

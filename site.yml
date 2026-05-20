@@ -2,7 +2,7 @@
   import_playbook: playbooks/pn50_power_limits.yml
   tags: [hardware]
 
-- name: Setup local registry to hold k3s images
+- name: Setup self-hosted container registry
   import_playbook: infrastructure/registry/main.yml
   tags: [infra]
 
@@ -10,11 +10,11 @@
   import_playbook: infrastructure/k3s/main.yml
   tags: [infra]
 
-- name: Install postgres into K3 container
+- name: Install postgres into K3s container
   import_playbook: infrastructure/postgres/install.yml
   tags: [infra]
 
-- name: Install nats into K3 container
+- name: Install nats into K3s container
   import_playbook: infrastructure/nats/main.yml
   tags: [infra]
 

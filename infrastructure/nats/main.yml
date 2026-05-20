@@ -1,8 +1,6 @@
 - name: Dependencies
   hosts: k3s_servers
   become: true
-  vars_files:
-    - "{{ project_root }}/group_vars/all.yml"
   tasks:
     - name: Install Kuberenetes dependencies on nodes
       ansible.builtin.package:
@@ -14,8 +12,6 @@
 - name: Deploy NATS via Helm
   hosts: localhost
   connection: local
-  become: true
-  vars_files:
     - "{{ project_root }}/group_vars/all.yml"
   tasks:
     - name: Add NATS Helm repository
@@ -41,9 +37,9 @@
                 type: NodePort
                 ports:
                   - name: nats
-                    port: 4222
-                    targetPort: 4222
-                    nodePort: "{{ nats_node_port }}"
+                    port: "{{ nats_port | int }}"
+                    targetPort: "{{ nats_port | int }}"
+                    nodePort: "{{ nats_node_port | int }}"
           config:
             cluster:
               # change this to true if adding more nats nodes/replicas
@@ -72,4 +68,4 @@
           jetstream:
             enabled: true
             nats:
-              url: "nats://nats.nats.svc.cluster.local:4222"
+              url: "nats://nats.nats.svc.cluster.local:{{ nats_port }}"

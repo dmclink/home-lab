@@ -1,5 +1,8 @@
 mirrors:
-  # must match k8s.yml.j2!!
-  "{{ registry_ip }}:{{ registry_port | default(5000) }}":
+  "{{ registry_ip }}:{{ registry_port }}":
     endpoint:
-      - "http://{{ registry_ip }}:{{ registry_port | default(5000) }}"
+      - "http://{{ registry_ip }}:{{ registry_port }}"
+configs:
+  "{{ registry_ip }}:{{ registry_port }}":
+    tls:
+      insecure_skip_verify: true

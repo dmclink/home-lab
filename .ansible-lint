@@ -1,2 +1,4 @@
 warn_list:
     - run-once
+skip_list:
+    - no-handler

@@ -35,22 +35,22 @@
           - "{{ app_overrides.nats.streamName | default(app_name) }}.>"
         storage: file
 
-- name: Create Common App Configuration Map
-  delegate_to: localhost
-  when: (needs_nats | default(false) | bool) and not (is_purge | default(false) | bool)
-  kubernetes.core.k8s:
-    state: present
-    definition:
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: "{{ app_name }}-shared-config"
-        namespace: "{{ app_name }}"
-        labels:
-          app: "{{ app_name }}"
-          app.kubernetes.io/managed-by: "ansible-homelab"
-      data:
-        NATS_STREAM_NAME: "{{ app_overrides.nats.streamName | default(app_name) }}-stream"
-        NATS_SUBJECT_PREFIX: "{{ app_overrides.nats.subjectPrefix | default(app_name) }}"
-        NATS_URL: "nats://nats.nats.svc.cluster.local:4222"
-  run_once: true
+# - name: Create Common App Configuration Map
+#   delegate_to: localhost
+#   when: (needs_nats | default(false) | bool) and not (is_purge | default(false) | bool)
+#   kubernetes.core.k8s:
+#     state: present
+#     definition:
+#       apiVersion: v1
+#       kind: ConfigMap
+#       metadata:
+#         name: "{{ app_name }}-shared-config"
+#         namespace: "{{ app_name }}"
+#         labels:
+#           app: "{{ app_name }}"
+#           app.kubernetes.io/managed-by: "ansible-homelab"
+#       data:
+#         NATS_STREAM_NAME: "{{ app_overrides.nats.streamName | default(app_name) }}-stream"
+#         NATS_SUBJECT_PREFIX: "{{ app_overrides.nats.subjectPrefix | default(app_name) }}"
+#         NATS_URL: "nats://nats.nats.svc.cluster.local:4222"
+#   run_once: true

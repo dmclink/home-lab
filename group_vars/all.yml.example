@@ -3,11 +3,17 @@ db_super_user: "user"
 db_initial_name: "database"
 
 # ip and port for machine that will store and serve k3s image registry
-registry_ip: "100.x.y.z"  
-registry_host: "host1"  
+registry_ip: "{{ hostvars[groups['registry_server'][0]]['ansible_host'] }}"
+registry_host: "{{ registry_ip }}"  
+registry_hostname: "{{ groups['registry_server'][0] }}"
 registry_port: "5000"
+
 # hostname of your current machine you run ansible from
 control_node_host: "control_node"
+
+nats_ip: "{{ hostvars[groups['nats_node'][0]]['ansible_host'] }}"
+nats_port: 4222
+nats_node_port: 30894
 
 # pn50 settings
 # WARNING: this is in watts! enter some value such as 15 to set tdp target to 15W

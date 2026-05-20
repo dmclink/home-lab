@@ -1,0 +1,7 @@
+- name: Route to K3s (Helm)
+  ansible.builtin.include_tasks: "{{ tasks_dir }}/helm_deploy.yml"
+  when: item.target | default('k3s') == 'k3s'
+
+- name: Route to Local Node (Podman Quadlets)
+  ansible.builtin.include_tasks: "{{ tasks_dir }}/quadlet_deploy.yml"
+  when: item.target | default('k3s') == 'local'
