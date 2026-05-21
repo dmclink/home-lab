@@ -4,6 +4,7 @@ After=network-online.target
 
 [Container]
 Image={{ item.image.repository }}:{{ item.image.tag }}
+ContainerName={{ app_name }}-{{ item.name }}
 
 {% if item.args is defined and item.args %}
 Exec={{ item.args | join(' ') }}
