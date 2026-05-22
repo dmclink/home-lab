@@ -66,6 +66,7 @@ components:
       schedule: "0 * * * *"
   - name: publisher
     target: k3s            # <-- Dispatched to K3s cluster (Default)
+```
 
 ### Database Integration
 To use the bootstrapped cluster Postgres database:
