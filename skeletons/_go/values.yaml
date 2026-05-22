@@ -1,37 +1,56 @@
-# DESIRED STATE
-# when set to false, results in app being removed from k3s cluster
+# =========================================================================
+# STATE
+# =========================================================================
+# When set to false, results in the app being entirely removed from the k3s cluster with state set to absent. 
+# This flag does not respect component-specific overrides.
 enabled: true
 
-# components:
-#   - name:
-#     workloadType:
-#     target: local
+# =========================================================================
+# GLOBAL CONFIG / SINGLE CONTAINER DEFAULT
+# =========================================================================
+# If the "components" array below is omitted or empty, the chart falls back to 
+# deploying a single container using the parameters defined in this block.
+# If components are defined, these values act as the shared baselines/fallbacks.
 
-# workloadType: deployment
+workloadType: deployment # options: deployment, cronjob
 
-# CONFIG
+# args: []
+
 # change to true if this app connects to db, will create database of db_name (defaults to app_name) automatically
 # postgres:
-  # enabled: false
-  # uncomment these and overwrite the group_vars/all.yml settings for app specifics as necessary
-  # host:
-  # port:
-  # db_name:
+#   enabled: false
+#   host: "ansible_fallback_host" # Automatically pulled from group_vars/all.yml if blank
+#   port: 5432
+#   db_name: "" # Defaults to .Release.Name (app_name) if left blank
  
 # ingress:
-  # enabled: false
-  # host: "subdomain.mydomain.com"
-  # annotations: 
-  #   traefik.ingress.kubernetes.io/router.entrypoints: web
+#   enabled: false
+#   host: "subdomain.mydomain.com"
+#   annotations: 
+#     traefik.ingress.kubernetes.io/router.entrypoints: web
 
 # nats:
 #   enabled: false
-#   streamName:
+#   streamName: ""
 
-# only available for workloadType: cronjob
-# cron:
-#   schedule:
+# add non-sensitive environment variables injected into apps environment here
+# NO SECRETS HERE! sensitive vars must go into vault.yaml
+# env_vars: {}
 
-# env_vars:
-  # add non-sensitive environment variables injected into apps environment here
-  # NO SECRETS! go to vault.yaml for that
+# =========================================================================
+# COMPONENTS (Multi-Container / Multi-Workload Split)
+# =========================================================================
+# Define this array only if the app requires multiple distinct processes.
+# If populated, the root-level single container deployment is skipped, and each
+# item in this list is built as an independent workload with root-level configs used
+# as a baseline layered config
+# components:
+#   - name: consumer
+#     target: local           # Custom metadata tag for your podman/k3s scripting filter
+#     workloadType: cronjob
+#     cron:                   # field evaluted only when workloadType == cronjob
+#       schedule: "0 * * * *"
+#     args: ["--mode", "consume"]
+#   - name: producer
+#     workloadType: deployment
+#     args: ["--mode", "produce"]
