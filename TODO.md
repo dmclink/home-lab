@@ -20,6 +20,10 @@
         - otherwise deploys values as a flat file single component
 - separate consumers directory optional for generic consumers on control node not tied to any specific app, ie. logging + health
 - cronjob no way to set schedule manually?
+- centralized observability deployed to k3s ie grafana, prometheus
+    - add an observability block to global configs of apps values.yaml where user can define port and path and enabled
+    - get prometheus.io/stuff in metadata annotations for apps
+    - local pods ie. consumers hosted on the control node would need their own observability instance deployed too?
 
 # Chores:
 - update README to include info on how to add new workload types, ie. add directory to charts and name matching files with chart subdir name and add to array in deploy_app_tasks

@@ -1,6 +1,10 @@
 # Spec K3s Cluster Homelab/server
 ## Vision
-Headless mini-pc cluster managed remotely. Allows for development and simplified deployment in apps of various languages. Utilizes K3s for orchestration, consolidated monitoring, and container management. Leverages Ansible as the single source of truth for hardware and software configuration and Helm for standardized application packaging.
+Headless mini-pc cluster managed remotely. Allows for development and simplified deployment
+in apps of various languages. Utilizes K3s for orchestration, consolidated monitoring,
+and container management. Ansible for hardware and software configuration. Podman Quadlets
+for low overhead containers on the control node (ie. event consumers). And Helm for 
+standardized application packaging.
 
 ## Directory Structure
 - `/apps`: Active, buildable custom application submodules (C++, Go, etc.). 
@@ -14,7 +18,7 @@ Headless mini-pc cluster managed remotely. Allows for development and simplified
 - Submodules: Every directory in `/apps` must be a standalone Git submodule.
 - Contract: To work with the global `deploy_app.yml` engine, every app must contain:
     - A `Dockerfile` in the root.
-    - A `values.yaml` to provide app-specific overrides to the common Helm chart.
+    - A values.yaml defining application layouts, component topologies, and deployment targets (k3s vs. local).
     - It's own `.gitignore` and `.dockerignore` files
 - Bootstrapping: New apps should be created by copying a folder from `/skeletons`.
 
@@ -27,7 +31,7 @@ Headless mini-pc cluster managed remotely. Allows for development and simplified
 ## Core Requirements
 - Headless Operation: Debian Server OS running on Mini-PCs with no peripherals attached
 - Standardized Templates: Applications utilize a "Common Service" Helm chart to ensure consistent labels, environment variables, and sidecar injection across the cluster
-- Networking: Connectivity and remote access are managed via Tailscale for stable, "static" MagicDNS addressing and encrypted SSH
+- Networking & Messaging: Connectivity is bound via Tailscale for stable MagicDNS internal resolution and encrypted SSH. Event-driven decoupled streaming is backed natively by a central NATS JetStream container.
 - Automation-First: All configurations (OS tuning, K3s setup, registry creation) and deployments must be handled via Ansible playbooks from a Fedora control node
 - Observability:
   - System Telemetry: The cluster must automatically forward critical system errors (.err/.crit) to the Control Node
@@ -40,9 +44,10 @@ Headless mini-pc cluster managed remotely. Allows for development and simplified
 ## Tech Stack
 - OS: Debian Server (Managed Host) / Fedora (Control Node)
 - Connectivity: Tailscale (VPN/SSH/Static IPs)
-- Container Engine: Podman (Control Node for builds) / Containerd (K3s Managed Host)
-- Orchestration: K3s (Lightweight Kubernetes)
-- Automation: Ansible (using kubernetes.core.helm and containers.podman collections)
+- Container Engine: Podman (control node for compiling/building, runs local quadlets ) / Containerd (K3s Managed Host)
+- Orchestration: K3s (Lightweight Kubernetes), Linux systemd (Podman quadlets)
+- Messaging: NATS JetStream (Streams and Consumers managed via NACK CRDs)
+- Automation: Ansible (using kubernetes.core.helm, containers.podman, and ansible.builtin.systemd_service collections)
 - Languages: C++26, Go, Python, JavaScript (Primary Apps), Jinja2/Helm Templates (Manifest Logic)
 - Registry: Local Podman-hosted registry (Insecure/HTTP)
 - rsyslog: Configured on all mini-pcs to handle system telemetry requirement
@@ -52,14 +57,14 @@ Headless mini-pc cluster managed remotely. Allows for development and simplified
 ## Architecture
 Control Node (Fedora Laptop)
 - Role: Development environment, orchestrator, and monitoring station
-- Tasks: Compiles code, builds container images via Podman, and executes Ansible playbooks
+- Tasks: Compiles code, builds container images, runs lightweight telemetry receivers, and executes Ansible playbooks
 - Workflow: 
   - Pushes built images across the network to the Registry hosted on the Mini-PC
   - Runs a listener service (Port 9090) to receive health payloads from K3s sidecars.
   - Runs a syslog server to receive and display critical OS/Hardware errors from all nodes.
 K3s Server Node (Mini-PC #1)
 - Role: Cluster controller, database host, image registry, compute worker
-- Tasks: Manages K3s control plane, schedules pods, hosts the local OCI image registry, and manages the persistent Postgres database
+- Tasks: Manages K3s control plane, schedules pods, hosts the local OCI image registry, hosts NATS, and manages the persistent Postgres database
 - Workflow:
   - Connects to the K3s server for orchestration instructions
   - Runs application workloads and infrastructure services required for other nodes
@@ -73,43 +78,50 @@ K3s Agent Nodes (Mini-PC #2+)
 Connectivity
 - All nodes communicate via Tailscale for secure inter-node networking and SSH
 
-┌─────────────────────────────────────────────────────────┐
-│               CONTROL NODE (Fedora Laptop)              │
-│   ---------------------------------------------------   │
-│   [ Dev ]  -->  [ Build ]  -->  [ Deploy ]              │
-│   C++26 Code    Podman Build    Ansible Playbooks       │
-│                                                         │
-│   [ Monitoring Station ] <──────────┐ <──────────┐      │
-│   - Health Listener (9090)          │            │      │
-│   - Syslog Server (514)             │            │      │
-└──────────────────┬──────────────────│────────────│──────┘
-                   │                  │            │
-       (Build/Push Image)      (Health Pings) (rsyslog)
-                   │                  │            │
-                   ▼                  │            │
-┌─────────────────────────────────────│────────────│──────┐
-│        K3S SERVER NODE (Mini-PC #1 - Debian)     │      │
-│   ------------------------------------------     │      │
-│   [ Container Registry ] <── (Images) ──┐        │      │
-│   [ K3s Control Plane ]                 │        │      │
-│   [ Postgres DB (SS) ] ── (Storage) ──┐ │        │      │
-│   [ Local SSD /Data ] <───────────────┘ │        │      │
-│                                         │        │      │
-│   [ Pod: App A ] ───> [ Health Sidecar ]│────────┤      │
-└──────────────────┬──────────────────────│────────│──────┘
-                   │                      │        │
-            (Orchestration)         (Pull Image)   │
-                   │                      │        │
-                   ▼                      ▼        │
-┌──────────────────────────────────────────────────│──────┐
-│        K3S AGENT NODES (Mini-PC #2+ - Debian)    │      │
-│   -------------------------------------------    │      │
-│                                                  │      │
-│   [ Pod: App B ] ───> [ Health Sidecar ]─────────┤      │
-│   [ Pod: App C ] ───> [ Health Sidecar ]─────────┤      │
-│                                                  │      │
-│   [ rsyslog Daemon ] ────────────────────────────┘      │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────┐
+│              CONTROL NODE (Fedora Laptop)                 │
+│   ---------------------------------------------------     │
+│   [ Dev & Build Space ]                                   │
+│   - Compiles C++/Go/JS code                               │
+│   - Executes Ansible scripts                              │
+│                                                           │
+│   ┌──────────────────────────────────────────────┐        │
+│   │ LOCAL HOST RUNTIME (SYSTEMD + QUADLET)       │        │
+│ ┌>│ [ Pod: NATS Consumer (Lightweight Edge) ]    │        │
+│ │ │ [ Pod: Health Listener / Receiver (9090)]    │<─┐     │
+│ │ │ [ Pod: Syslog Server Receiver (514)     ]    │<─┼───┐ │
+│ │ └──────────────────────────────────────────────┘  │   │ │
+└─│────────────────┬──────────────────────────────────│───│─┘
+  │                │                                  │   │
+  │        (Push Build Images)       ( Push Health Pings) │
+  │                │                                  │   │
+  │                ▼                                  │   │
+┌─│───────────────────────────────────────────────────│───│──┐
+│ │      K3S SERVER NODE (Mini-PC #1 - Debian)        │   │  │
+│ │ ------------------------------------------        │   │  │
+│ │ [ OCI Image Registry ] ─── (Images) ──┐           │   │  │
+│ └─[ NATS JetStream Core ] <───┐         │           │   │  │
+│   [ Pod: App           ] ─────┴─────────│─────>[Health] │  │
+│   [ Postgres DB Host   ] ── (Storage) ┐ │               │  │
+│   [ Local Storage/Data ] <────────────┘ │               │  │
+│                                         │               │  │
+│   [ K3s Control Plane  ]                │               │  │
+└──────────────────┬──────────────────────│───────────────│──┘
+                   │                      │               │
+            (Orchestration)          (Pull Image)         │
+                   │                      │               │
+                   ▼                      ▼               │
+┌─────────────────────────────────────────────────────────│──┐
+│        K3S AGENT NODES (Mini-PC #2+ - Debian)           │  │
+│   -------------------------------------------           │  │
+│                                                         │  │
+│   | Pod: Component A | ──> [Health Sidecar] ────────────┘  │
+│   | Pod: Component B |                                     │
+│                                                            │
+│   [ rsyslog Daemon ] ──────────────────────────────────────┘
+└────────────────────────────────────────────────────────────┘
+
+* All inter-node networking and data streams traverse Tailscale Mesh & MagicDNS
 
 * All node-to-node communication occurs over Tailscale/mDNS
 
