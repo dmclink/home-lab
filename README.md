@@ -1,6 +1,8 @@
 # Home Lab
 ## Description
-Homelab automation for PN50 MiniPC via Tailscale and K3s with a Helm default deployment chart.
+Homelab automation for PN50 MiniPC via Tailscale, supporting a hybrid execution architecture:
+- **K3s Cluster:** Orchestrates distributed multi-container workloads, cronjobs, and network routing via Helm.
+- **Local Podman (Quadlets):** Systemd-managed local container execution directly on the host machine for low-overhead edge streaming and consumption.
 
 ## Initial Setup
 1. Define device hostnames/IPs in `inventory.yml`.
@@ -46,6 +48,25 @@ Configuration is merged from multiple layers. If a key exists in multiple places
 
 Note: Any key defined in `env_vars` or `env_secrets` is automatically injected into the container's environment at runtime.
 
+### Component Topology & Deployment Targets
+By default, an application deploys as a single container workload to K3s. However, you can split your application into distinct operational processes by defining a `components` array in your `apps/<app>/values.yaml`.
+
+Each component inherits root global values (like `env_vars`, `postgres`, or `nats` integrations) unless explicitly overridden inside its specific block.
+
+```yaml
+# apps/hello-go-nats/values.yaml
+enabled: true
+workloadType: deployment  # Global fallback
+
+components:
+  - name: consumer
+    target: local          # <-- Forces deployment to local Podman via systemd-quadlet
+    workloadType: cronjob
+    cron:
+      schedule: "0 * * * *"
+  - name: publisher
+    target: k3s            # <-- Dispatched to K3s cluster (Default)
+
 ### Database Integration
 To use the bootstrapped cluster Postgres database:
 - Set `postgres.enabled: true` in the app's `values.yaml`.
@@ -59,11 +80,12 @@ The `app` helper script manages lifecycle and context.
 
 - `app new <name>`: Scaffolds a new project from `skeletons/`.
 - `app clone <url>`: Pulls an external project as a submodule and merges missing deployment boilerplate (Dockerfile, values.yaml).
-- `app deploy <name>`: Builds the image (Podman), pushes to local registry, and applies Helm chart.
+- `app deploy <name>`: Builds the image via Podman, pushes to the local registry if routing to K3s, or directly configures local systemd Quadlet files if `target: local` is specified in the app profile.
 - `app disable <name>`: Shuts down pods but preserves data and local files.
 - `app remove <name>`: Deletes local files and submodule registration.
 - `app remove <name> --purge`: Deletes everything including Persistent Volumes and Databases.
 - `app db <name>`: Drops into a SQL shell for the app's database.
+- `app status`: Gives all pod uptime and status regardless its deployment
 
 Command            | Action on values.yaml | Cluster Pods | Database | Namespace | Local Folder | deploy-all Behavior
 ---
@@ -78,4 +100,5 @@ app remove --purge | N/A (Folder Deleted) | Deleted      | Deleted  | Deleted   
   - sends a POST request to control node's health endpoint.
 - Monitor pod resource usage with `kubectl top pods -A`
 - Monitor node resource usage with `kubectl top nodes`
-
+- Monitor local pods with `podman ps`
+- Monitor streams with nats cli
