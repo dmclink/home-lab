@@ -1,0 +1,37 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+APPS_DIR="$PROJECT_ROOT/apps"
+
+source "$(dirname "${BASH_SOURCE}")/_lib.sh"
+
+APPS=$(list_apps)
+
+for app in "${APPS[@]}"; do
+    echo "================================================================="
+    echo "APP: $app"
+    echo "================================================================="
+    (
+        echo "PODS:"
+        echo -e "RUNTIME\tNAME\tTYPE\tARGS\tSTATUS\\LAST RUN\tAGE"
+        podman ps --filter "name=$app" --format "{{.Names}}\tQuadlet\t{{.Command}}\t{{.Status}}\t{{.RunningFor}}" | sed 's/^/LOCAL\t/'
+        kubectl get cronjobs -n "$app" -l "app=$app" -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.kind}{"\t"}{.spec.schedule}{"\t"}{.status.lastScheduleTime}{"\t"}{.metadata.creationTimestamp}{"\n"}{end}' | sed 's/^/K3S\t/'
+        kubectl get pods -n "$app" -l "app=$app" -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.metadata.ownerReferences[0].kind}{"\t"}{.spec.containers[*].args}{"\t"}{.status.phase}{"\t"}{.metadata.creationTimestamp}{"\n"}{end}' | sed 's/^/K3S\t/'
+
+    ) | column -t -s $'\t'
+    echo "-----------------------------------------------------------------"
+    (
+        echo "STREAMS:"
+        echo -e "RUNTIME\tNAME\tTYPE\tTARGET/STREAM\tSTATUS/BINDING\tAGE"
+        kubectl get streams -n "$app" -l "app=$app" -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.kind}{"\t"}{.spec.subjects}{"\t"}{.status.conditions[0].reason}{"\t"}{.metadata.creationTimestamp}{"\n"}{end}' | sed 's/^/K3S\t/'
+        kubectl get consumers -n "$app" -l "app=$app" -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.kind}{"\t"}{.spec.streamName}{"\t"}{.status.conditions[0].reason}{"\t"}{.metadata.creationTimestamp}{"\n"}{end}' | sed 's/^/K3S\t/'
+    ) | column -t -s $'\t'
+    echo "-----------------------------------------------------------------"
+    (
+        echo "NETWORK & STORAGE:"
+        echo -e "RUNTIME\tNAME\tTYPE\tENDPOINT/VOLUME\tSTATUS\tAGE"
+        kubectl get ingress -n "$app" -l "app=$app" -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.kind}{"\t"}{.spec.rules[*].host}{"\t"}{"Bound"}{"\t"}{.metadata.creationTimestamp}{"\n"}{end}' | sed 's/^/K3S\t/'
+        kubectl get pvc -n "$app" -l "app=$app" -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.kind}{"\t"}{.spec.volumeName}{"\t"}{.status.phase}{"\t"}{.metadata.creationTimestamp}{"\n"}{end}' | sed 's/^/K3S\t/'
+    ) | column -t -s $'\t'
+done

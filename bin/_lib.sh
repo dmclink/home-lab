@@ -45,3 +45,12 @@ sanitize_app_name() {
 
     echo "$sanitized"
 }
+
+list_apps() {
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+    local APPS_DIR="$PROJECT_ROOT/apps"
+    local APPS
+    mapfile -t APPS < <(find "$APPS_DIR" -maxdepth 1 -mindepth 1 -type d -not -path '*/.*' -printf "%f\n")
+    echo $APPS
+}

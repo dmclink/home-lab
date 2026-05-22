@@ -18,6 +18,7 @@ usage() {
     echo "  clone <repo-url>        Clones a repo as a submodule & merges skeleton files."
     echo "                          NOTE: Consider forking the repo first and cloning the fork to save deployment configs."
     echo "  new <name>              Creates a new app by copying skeleton to /apps and creating git submodule."
+    echo "  status                  Display status of all apps' containers"
     echo "  list                    List all apps in the apps/ directory"
     echo "  -h, --help              Show this help message"
 }
@@ -40,6 +41,9 @@ new)
     ;;
 list)
     ls "$APPS_DIR"
+    ;;
+status)
+    "$SCRIPT_DIR/app-status" "$@"
     ;;
 -h | --help | "")
     usage
