@@ -97,7 +97,7 @@ app remove --purge | N/A (Folder Deleted) | Deleted      | Deleted  | Deleted   
 
 ## System Maintenance
 - Monitor pod status with `kubectl get pods -A -l managed-by=ansible-homelab`
-- All apps deployed via the `common-service` chart automatically receive a health-sidecar container.
+- All apps deployed with the standard deployment chart automatically receive a health-sidecar container.
   - sends a POST request to control node's health endpoint.
 - Monitor pod resource usage with `kubectl top pods -A`
 - Monitor node resource usage with `kubectl top nodes`
