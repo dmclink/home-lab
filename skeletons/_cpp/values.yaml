@@ -19,9 +19,9 @@ workloadType: deployment # options: deployment, cronjob
 # change to true if this app connects to db, will create database of db_name (defaults to app_name) automatically
 # postgres:
 #   enabled: false
-#   host: "ansible_fallback_host" # Automatically pulled from group_vars/all.yml if blank
 #   port: 5432
-#   db_name: "" # Defaults to .Release.Name (app_name) if left blank
+#   host: "ansible_fallback_host" # Automatically pulled from group_vars/all.yml if omitted (recommended)
+#   db_name: "" # Defaults to .Release.Name (app_name) if left omitted (recommended)
  
 # ingress:
 #   enabled: false
