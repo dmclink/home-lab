@@ -32,3 +32,5 @@
 - add infra namespaces and service names ie. postgres and nats to group_vars/all.yml to they can be configured 
     - lets them be defined in one place and env vars like NATS_URL can be built instead of repeated in every workloadType template
 - reorgniaze whole project with roles for readability ref: guidelines here https://redhat-cop.github.io/automation-good-practices/#_introduction
+- when single container apps its duplicating the name twice ie personal-blog-server-personal-blog-server-tagaoifgij
+    - normally i want app.name-item.name
