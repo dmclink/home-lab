@@ -10,3 +10,4 @@
     container: true
     image: true
     system_all: false
+  when: is_purge | bool
