@@ -24,6 +24,8 @@
     - add an observability block to global configs of apps values.yaml where user can define port and path and enabled
     - get prometheus.io/stuff in metadata annotations for apps
     - local pods ie. consumers hosted on the control node would need their own observability instance deployed too?
+- when cloning merge missing lines from template .gitignore
+    - currently if .gitignore exists in cloned repo it may miss neccessary ignores for this ansible project ie. values.yaml
 
 # Chores:
 - update README to include info on how to add new workload types, ie. add directory to charts and name matching files with chart subdir name and add to array in deploy_app_tasks
