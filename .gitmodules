@@ -14,3 +14,7 @@
 	url = ./apps/hello-go-nats
 [submodule "/home/d/Data/Code/prod/home-lab/apps/hello-go-nats"]
 	ignore = untracked
+[submodule "apps/personal-blog-server"]
+	path = apps/personal-blog-server
+	url = git@github.com:dmclink/personal-blog-server
+	ignore = untracked
