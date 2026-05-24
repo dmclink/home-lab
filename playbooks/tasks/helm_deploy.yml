@@ -16,5 +16,5 @@
     chart_ref: "{{ project_root }}/charts/{{ item.workloadType | default('deployment') }}"
     release_namespace: "{{ app_name }}"
     state: "{{ workload_state }}"
-    values: "{{ item | combine({ 'env_secrets': env_secrets }) }}"
+    values: "{{ item | combine({ 'vault_env_secrets': vault_env_secrets }) }}"
   no_log: true

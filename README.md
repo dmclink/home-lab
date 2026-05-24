@@ -38,15 +38,15 @@ Configuration is merged from multiple layers. If a key exists in multiple places
      LOG_LEVEL: "info"
    ```
 3. **Encrypted Secrets (`apps/<app>/vault.yml`)**:
-  Sensitive data. Add a block named `env_secrets`. These are injected via a Kubernetes Secret.
+  Sensitive data. Add a block named `vault_env_secrets`. These are injected via a Kubernetes Secret.
    ```yaml
-   env_secrets:
+   vault_env_secrets:
      API_KEY: "super-secret-token"
    ```
 4. **Global Vault (vault.yml)**:
   Cluster-wide secrets (ie. master DB passwords) that can be mapped to an app's deployment via Ansible.
 
-Note: Any key defined in `env_vars` or `env_secrets` is automatically injected into the container's environment at runtime.
+Note: Any key defined in `env_vars` or `vault_env_secrets` is automatically injected into the container's environment at runtime.
 
 ### Component Topology & Deployment Targets
 By default, an application deploys as a single container workload to K3s. However, you can split your application into distinct operational processes by defining a `components` array in your `apps/<app>/values.yaml`.
