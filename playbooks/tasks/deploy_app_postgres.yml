@@ -1,6 +1,7 @@
 - name: Determine if Postgres is needed by any component
   ansible.builtin.set_fact:
     needs_db: "{{ final_components | selectattr('postgres.enabled', 'defined') | selectattr('postgres.enabled', 'equalto', true) | list | length > 0 }}"
+    db_name: "{{ app_overrides.postgres.db_name | default(app_name) }}"
   run_once: true
 
 - name: Ensure app database user exists
@@ -20,7 +21,7 @@
 - name: Ensure application database exists
   when: (needs_db | default(false) | bool) and not is_purge
   community.postgresql.postgresql_db:
-    name: "{{ helm_vars.db_name | default(app_name) }}"
+    name: "{{ db_name | default(app_name) }}"
     owner: "{{ app_name }}"
     state: "{{ db_state }}"
     login_host: "{{ groups['db_servers'][0] }}"

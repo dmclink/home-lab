@@ -47,7 +47,7 @@ spec:
             value: {{ .Values.appName | default .Release.Namespace | quote }}
           {{- if .Values.postgres.enabled }}
           - name: {{ .Values.postgres.db_name_key | quote }}
-            value: {{ .Values.postgres.db_name | default .Release.Name | quote }}
+            value: {{ .Values.postgres.db_name | default .Values.appName | default .Release.Namespace | quote }}
           - name: {{ .Values.postgres.user_key | quote }}
             value: {{ .Release.Name | quote }}
           - name: "POSTGRES_HOST"
@@ -61,7 +61,7 @@ spec:
           {{- end }}
         envFrom:
           - secretRef:
-              name: "{{ .Release.Name }}-secrets"
+              name: "{{ .Values.appName | default .Release.Namespace }}-secrets"
           {{- if .Values.nats.enabled }}
           - configMapRef:
               name: {{ .Values.appName }}-shared-config

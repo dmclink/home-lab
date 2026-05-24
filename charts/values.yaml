@@ -13,9 +13,11 @@ postgres:
   enabled: false
   host: "postgres-service.database.svc.cluster.local"
   port: 5432
+  # these are strings but assigned null here to use truthy if checks in charts and playbooks
   password:
+  username:
   db_name:
-  # environment variables
+  # environment variables key names
   db_name_key: "POSTGRES_DB"
   user_key: "POSTGRES_USER"
   pass_key: "POSTGRES_PASSWORD"
