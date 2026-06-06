@@ -11,3 +11,15 @@
     image: true
     system_all: false
   when: is_purge | bool
+
+- name: Delete image repository directory from storage
+  ansible.builtin.file:
+    path: "/home/{{ registry_user }}/registry_data/docker/registry/v2/repositories/{{ app_name }}"
+    state: absent
+  when: is_purge | bool
+
+- name: Run registry garbage collection
+  ansible.builtin.command: >
+    podman exec local-registry registry garbage-collect /etc/docker/registry/config.yml
+  when: is_purge | bool
+  changed_when: true
