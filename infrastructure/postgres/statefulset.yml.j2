@@ -54,11 +54,13 @@ spec:
           command: ["/bin/sh", "-c"]
           args:
           - |
-            apk add --no-cache wget
+            apk add --no-cache curl
             while true; do
               payload="{\"service\": \"postgres\", \"status\": \"running\", \"host\": \"$NODE_NAME\"}"
-              wget -q --post-data="$payload" http://{{ control_node_host }}:9090/health -O - || true
-              sleep 30
+              curl -s --connect-timeout 2 --max-time 5 -X POST http://{{ control_node_host }}:9090/health \
+                -H "Content-Type: application/json" \
+                -d "$payload" || true
+              sleep $((25 + RANDOM % 11))
             done
   volumeClaimTemplates:
     - metadata:

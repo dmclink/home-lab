@@ -72,11 +72,15 @@ spec:
         command: ["/bin/sh", "-c"]
         args:
         - |
-          apk add --no-cache wget
+          apk add --no-cache curl
           while true; do
             payload="{\"service\": \"{{ .Release.Name }}\", \"status\": \"running\", \"host\": \"$NODE_NAME\"}"
-            wget -q --post-data="$payload" http://{{ .Values.global.controlNodeHost }}:9090/health -O - || true
-            sleep 30
+            
+            curl -s --connect-timeout 2 --max-time 5 -X POST http://{{ .Values.global.controlNodeHost }}:9090/health \
+              -H "Content-Type: application/json" \
+              -d "$payload" || true
+            
+            sleep $((25 + RANDOM % 11))
           done
         env:
         - name: NODE_NAME
