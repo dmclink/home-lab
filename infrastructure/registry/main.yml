@@ -1,19 +1,47 @@
 - name: Setup Podman Registry
   hosts: registry_server
-  become: true
+  vars:
+    # registry_user and registry_port from group_vars
+    user_path: "/home/{{ registry_user }}"
 
   tasks:
     - name: Install Podman (Debian) and dependencies
       ansible.builtin.package:
         name: [curl, podman, python3-podman]
         state: present
+      become: true
 
     - name: Ensure registry storage directory exists
       ansible.builtin.file:
-        path: /opt/registry_data
+        path: "{{ user_path }}/registry_data"
         state: directory
-        owner: root
-        group: root
+        owner: "{{ registry_user }}"
+        group: "{{ registry_user }}"
+        mode: '0755'
+
+    - name: Ensure Quadlet systemd directory exists
+      ansible.builtin.file:
+        path: "{{ user_path }}/.config/containers/systemd"
+        state: directory
+        owner: "{{ registry_user }}"
+        group: "{{ registry_user }}"
+        mode: '0755'
+
+
+    - name: Ensure user systemd directoryexists
+      ansible.builtin.file:
+        path: "{{ user_path }}/.config/systemd/user"
+        state: directory
+        owner: "{{ registry_user }}"
+        group: "{{ registry_user }}"
+        mode: '0755'
+
+    - name: Ensure user local bin directory exists
+      ansible.builtin.file:
+        path: "{{ user_path }}/.local/bin"
+        state: directory
+        owner: "{{ registry_user }}"
+        group: "{{ registry_user }}"
         mode: '0755'
 
     - name: Get tailscale IPv4 address
@@ -21,50 +49,66 @@
       register: tailscale_ip_result
       changed_when: false
 
-    - name: Start Registry container
-      containers.podman.podman_container:
-        name: local-registry
-        image: docker.io/library/registry:2
-        state: started
-        restart_policy: always
-        ports:
-          - "{{ tailscale_ip_result.stdout }}:{{ registry_port }}:5000"
-        volumes:
-          - /opt/registry_data:/var/lib/registry:Z
+    - name: Create Quadlet container definition
+      ansible.builtin.copy:
+        dest: "{{ user_path }}/.config/containers/systemd/local-registry.container"
+        owner: "{{ registry_user }}"
+        group: "{{ registry_user }}"
+        mode: '0644' 
+        content: |
+          [Container]
+          ContainerName=local-registry
+          Image=docker.io/library/registry:2
+          PublishPort={{ tailscale_ip_result.stdout }}:{{ registry_port }}:5000
+          Volume={{ user_path }}/registry_data:/var/lib/registry:Z
 
-- name: Create heartbeat/healthcheck for K3s registry podman container
-  hosts: registry_server
-  become: true
-  tasks:
+          [Install]
+          WantedBy=default.target
+
+    - name: Enable linger for rootless user
+      ansible.builtin.command: "loginctl enable-linger {{ registry_user }}"
+      become: true
+      changed_when: false
+
+    - name: Enable and start rootless registry service
+      ansible.builtin.systemd:
+        name: local-registry.service
+        state: started
+        enabled: true
+        scope: user
+        daemon_reload: true
+
     - name: Create heartbeat script
       ansible.builtin.copy:
-        dest: /usr/local/bin/registry-heartbeat.sh
+        dest: "{{ user_path }}/.local/bin/registry-heartbeat.sh"
+        owner: "{{ registry_user }}"
+        group: "{{ registry_user }}"
         mode: '0755'
         content: |
           #!/bin/bash
-          #Check if container is running
+          # Check if container is running
           STATUS=$(podman inspect -f '{{ "{{" }}.State.Status{{ "}}" }}' local-registry 2>/dev/null || echo "stopped")
           # Push heartbeat payload to laptop listener
           curl -s --connect-timeout 2 --max-time 5 -X POST http://{{ control_node_host }}:9090/health \
-            -H "Content-Type": application/json \
+            -H "Content-Type: application/json" \
             -d "{\"service\": \"registry\", \"status\": \"$STATUS\", \"host\": \"{{ inventory_hostname }}\"}"
 
-    - name: Setup systemd timer for heartbeat
+    - name: Setup systemd service for heartbeat
       ansible.builtin.copy:
-        dest: /etc/systemd/system/registry-heartbeat.service
-        owner: root
-        group: root
+        dest: "{{ user_path }}/.config/systemd/user/registry-heartbeat.service"
+        owner: "{{ registry_user }}"
+        group: "{{ registry_user }}"
         mode: '0644'
         content: |
           [Service]
           Type=oneshot
-          ExecStart=/usr/local/bin/registry-heartbeat.sh
+          ExecStart={{ user_path }}/.local/bin/registry-heartbeat.sh
 
-    - name: Setup heartbeat schedule (every minute)
+    - name: Setup heartbeat schedule
       ansible.builtin.copy:
-        dest: /etc/systemd/system/registry-heartbeat.timer
-        owner: root
-        group: root
+        dest: "{{ user_path }}/.config/systemd/user/registry-heartbeat.timer"
+        owner: "{{ registry_user }}"
+        group: "{{ registry_user }}"
         mode: '0644'
         content: |
           [Timer]
@@ -73,9 +117,10 @@
           [Install]
           WantedBy=timers.target
 
-    - name: Enable and start heartbeat timer
+    - name: Enable and start heartbeat timer service
       ansible.builtin.systemd:
         name: registry-heartbeat.timer
         state: started
         enabled: true
+        scope: user
         daemon_reload: true

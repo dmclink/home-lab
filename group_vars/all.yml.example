@@ -7,6 +7,7 @@ registry_ip: "{{ hostvars[groups['registry_server'][0]]['ansible_host'] }}"
 registry_host: "{{ registry_ip }}"  
 registry_hostname: "{{ groups['registry_server'][0] }}"
 registry_port: "5000"
+registry_user: "d"
 
 # hostname of your current machine you run ansible from
 control_node_host: "control_node"
