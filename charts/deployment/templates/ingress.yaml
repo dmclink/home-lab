@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ .Release.Name }}-ingress
+  name: {{ .Values.appName | default .Release.Namespace }}-ingress
   namespace: {{ .Release.Namespace }}
   annotations:
     kubernetes.io/ingress.class: traefik
@@ -18,7 +18,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ .Release.Name }} # Matches your Service name
+                name: {{ .Values.appName | default .Release.Namespace }} # Matches your Service name
                 port:
                   number: {{ .Values.service.port | default 80 }}
 {{- end }}
