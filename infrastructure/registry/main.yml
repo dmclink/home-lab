@@ -27,7 +27,6 @@
         group: "{{ registry_user }}"
         mode: '0755'
 
-
     - name: Ensure user systemd directoryexists
       ansible.builtin.file:
         path: "{{ user_path }}/.config/systemd/user"
@@ -44,11 +43,6 @@
         group: "{{ registry_user }}"
         mode: '0755'
 
-    - name: Get tailscale IPv4 address
-      ansible.builtin.command: tailscale ip -4
-      register: tailscale_ip_result
-      changed_when: false
-
     - name: Create Quadlet container definition
       ansible.builtin.copy:
         dest: "{{ user_path }}/.config/containers/systemd/local-registry.container"
@@ -59,7 +53,7 @@
           [Container]
           ContainerName=local-registry
           Image=docker.io/library/registry:2
-          PublishPort={{ tailscale_ip_result.stdout }}:{{ registry_port }}:5000
+          PublishPort=127.0.0.1:{{ registry_port }}:5000
           Volume={{ user_path }}/registry_data:/var/lib/registry:Z
 
           [Install]
@@ -77,6 +71,11 @@
         enabled: true
         scope: user
         daemon_reload: true
+
+    - name: Force Tailscale TCP proxy hook
+      ansible.builtin.command: "tailscale serve --bg --tcp 5000 tcp://127.0.0.1:{{ registry_port }}"
+      become: true
+      changed_when: true
 
     - name: Create heartbeat script
       ansible.builtin.copy:
