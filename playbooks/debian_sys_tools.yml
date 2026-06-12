@@ -1,0 +1,39 @@
+- name: Install Debian system admin tools
+  hosts: debian_hosts
+  become: true
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: User tools
+      ansible.builtin.package:
+        state: present
+        name:
+          - psmisc # fuser
+
+    - name: Dev tools
+      ansible.builtin.package:
+        state: present
+        name:
+          - git
+          - tmux
+          - curl
+          - wget
+          # - neovim # use playbooks/neovim.yml to get latest version installed from official
+
+    - name: System monitoring tools
+      ansible.builtin.package:
+        state: present
+        name:
+          - lm-sensors # sensors, sensors-detect
+          - fastfetch
+          - glances
+          - sysstat
+          - nmap
+          - tcpdump
+          - htop
+          - iftop
+          - iotop
+          - fdisk
+          - ncdu

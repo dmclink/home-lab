@@ -1,0 +1,41 @@
+# this playbook should be run with --ssh-common-args="-o ForwardAgent=true" for private repos
+- name: Install and pull neovim configs
+  hosts: debian_hosts
+  become: true
+  vars:
+    nvim_repo_url: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+  tasks:
+    - name: Install required packages to unzip tarball
+      ansible.builtin.package:
+        state: present
+        name:
+          - unzip
+          - zstd
+
+    - name: Download latest Neovim
+      ansible.builtin.get_url:
+        url: "{{ nvim_repo_url }}"
+        dest: /tmp/nvim-linux.tar.gz
+        mode: '0644'
+
+    - name: Extract Neovim to /opt
+      ansible.builtin.unarchive:
+        src: /tmp/nvim-linux.tar.gz
+        dest: /opt
+        remote_src: true
+        creates: /opt/nvim-linux-x86_64
+
+    - name: Create symlink to bin
+      ansible.builtin.file:
+        src: /opt/nvim-linux-x86_64/bin/nvim
+        dest: /usr/local/bin/nvim
+        state: link
+        force: true
+
+    - name: Pull neovim configs from git
+      ansible.builtin.git:
+        repo: "{{ neovim_repo }}"
+        dest: /home/{{ hosts_user }}/.config/nvim
+        version: main
+        accept_hostkey: true
+      become: false
