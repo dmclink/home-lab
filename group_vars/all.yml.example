@@ -1,3 +1,6 @@
+# all k3 hosts should have user setup with this name
+hosts_user: "user"
+
 # initial db name and user for postgres setup
 db_super_user: "user"
 db_initial_name: "database"
@@ -7,7 +10,7 @@ registry_ip: "{{ hostvars[groups['registry_server'][0]]['ansible_host'] }}"
 registry_host: "{{ registry_ip }}"  
 registry_hostname: "{{ groups['registry_server'][0] }}"
 registry_port: "5000"
-registry_user: "d"
+registry_user: "user"
 
 # hostname of your current machine you run ansible from
 control_node_host: "control_node"
@@ -28,3 +31,5 @@ ryzen_temp_limit: 75
 project_root: "{{ lookup('pipe', 'git rev-parse --show-toplevel') }}"
 
 db_node_port: 30893
+
+neovim_repo: "git@github.com:yourusername/your-neovim-config-repo.git"
